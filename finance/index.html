@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ritmo — Finansų valdymas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="app-header">
+  <div class="app-logo">Ritmo <span>Finansai</span></div>
+  <div class="header-mode">
+    <div id="mode-badge" class="mode-badge">Admin</div>
+    <button class="btn btn-ghost btn-sm admin-only" onclick="copyViewLink()" title="Nukopijuoti partnerio nuorodą">
+      👁 Dalintis (view)
+    </button>
+  </div>
+</header>
+
+<!-- Company tabs -->
+<div class="company-tabs" id="company-tabs"></div>
+
+<!-- Month navigation -->
+<div class="month-bar">
+  <button class="month-nav" onclick="prevMonth()">‹</button>
+  <span class="month-label" id="month-label"></span>
+  <button class="month-nav" onclick="nextMonth()">›</button>
+</div>
+
+<!-- Main content -->
+<main class="main">
+
+  <!-- Summary -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Santrauka</span>
+    </div>
+    <div class="card-body">
+      <div class="summary-grid" id="summary"></div>
+    </div>
+  </div>
+
+  <!-- Balances -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Sąskaitos ir kasos — šiandienos likučiai</span>
+      <span style="font-size:11px;color:var(--text3)">Atnaujink kiekvieną dieną</span>
+    </div>
+    <div class="card-body">
+      <div class="balance-grid" id="balances"></div>
+    </div>
+  </div>
+
+  <!-- Projection -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Pajamų projekcija vs faktinė</span>
+    </div>
+    <div class="card-body" id="projection"></div>
+  </div>
+
+  <!-- Revenues -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Dienos čekiai (apyvarta)</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:var(--text3)">Grynai → kasa, kortele → sąskaita +1d.</span>
+        <button class="btn btn-ghost btn-sm admin-only" onclick="showWebhookInfo()">⚡ Make.com</button>
+      </div>
+    </div>
+    <div class="card-body" id="revenues"></div>
+  </div>
+
+  <!-- Expenses -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Išlaidos</span>
+      <div style="display:flex;gap:8px">
+        <span id="expense-totals" style="font-size:12px;color:var(--text3)"></span>
+      </div>
+    </div>
+    <div class="card-body" id="expenses"></div>
+  </div>
+
+  <!-- Make.com webhook info (hidden by default) -->
+  <div class="card admin-only" id="webhook-card" style="display:none">
+    <div class="card-header">
+      <span class="card-title">Make.com integracija — čekių importas</span>
+      <button class="btn-icon" onclick="document.getElementById('webhook-card').style.display='none'">✕</button>
+    </div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
+        Make.com scenarijo struktūra: <strong>FB Messenger → OCR → Parse → HTTP POST</strong><br>
+        Žemiau — JSON formatas kurį siųsti į Google Apps Script endpoint.
+      </p>
+
+      <div style="margin-bottom:12px">
+        <div class="webhook-label">POST body (JSON) — vienas čekis:</div>
+        <div class="webhook-box">{
+  "companyId": "darts",
+  "year": 2026,
+  "month": 8,
+  "date": "2026-08-10",
+  "location": "Palanga",
+  "cash": 101.50,
+  "card": 419.19,
+  "total": 520.69,
+  "fiscalNr": "00011607"
+}</div>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <div class="webhook-label">Make.com → Google Apps Script (doPost) kodo šablonas:</div>
+        <div class="webhook-box">function doPost(e) {
+  const d = JSON.parse(e.postData.contents);
+  const ss = SpreadsheetApp.openById('YOUR_SHEET_ID');
+  const sheet = ss.getSheetByName(d.companyId + '-revenues');
+  sheet.appendRow([d.date, d.location, d.cash, d.card, d.total, d.fiscalNr, new Date()]);
+  return ContentService.createTextOutput('{"status":"ok"}')
+    .setMimeType(ContentService.MimeType.JSON);
+}</div>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <div class="webhook-label">Testavimas (browser console):</div>
+        <div class="webhook-box">window.importReceipt({"companyId":"darts","year":2026,"month":8,"date":"2026-08-11","location":"Vilnius","cash":200,"card":350,"total":550,"fiscalNr":"00011700"})</div>
+      </div>
+
+      <p style="font-size:12px;color:var(--text3)">
+        Pilnas Make.com scenarijo aprašymas: FB Messenger Webhook → Router (ar nuotrauka?) →
+        Vision API / Claude API (OCR+parse) → HTTP POST į Apps Script → patvirtinimas atgal į Messenger.
+      </p>
+    </div>
+  </div>
+
+</main>
+
+<script src="config.js"></script>
+<script src="store.js"></script>
+<script src="app.js"></script>
+<script>
+  // Update mode badge
+  document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'view') {
+      document.getElementById('mode-badge').textContent = 'View only';
+      document.getElementById('mode-badge').classList.add('view');
+    }
+  });
+
+  function showWebhookInfo() {
+    const card = document.getElementById('webhook-card');
+    card.style.display = card.style.display === 'none' ? 'block' : 'none';
+    card.scrollIntoView({ behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
