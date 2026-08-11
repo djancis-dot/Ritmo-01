@@ -610,7 +610,7 @@ let currentView = 'all'; // 'all' | 'darts' | 'uptown' | 'ritmas'
 // ══════════════════════════════════════════
 const DB = (() => {
   let d;
-  const load = () => { try { d = JSON.parse(localStorage.getItem(SK)) || {m:{},cfg:{}}; } catch { d={m:{},cfg:{}}; } };
+  const load = () => { try { d = JSON.parse(localStorage.getItem(SK)) || {m:{},cfg:{},tmpl:{}}; d.tmpl=d.tmpl||{}; } catch { d={m:{},cfg:{},tmpl:{}}; } };
   const save = () => localStorage.setItem(SK, JSON.stringify(d));
   const key = (c,y,m) => `${c}-${y}-${String(m).padStart(2,'0')}`;
   const co = id => COMPANIES.find(c=>c.id===id);
@@ -620,7 +620,16 @@ const DB = (() => {
     co(id).cash.forEach(r=>bal[r.id]=0);
     return {bal,proj:0,revs:[],exps:[]};
   };
-  const getM = (c,y,m) => { const k=key(c,y,m); if(!d.m[k]) d.m[k]=defM(c); return d.m[k]; };
+  const getM = (c,y,m) => {
+    const k=key(c,y,m);
+    if(!d.m[k]) {
+      const def=defM(c);
+      const tmpls=(d.tmpl||{})[c]||[];
+      if(tmpls.length) def.exps=tmpls.map(t=>({...t,id:Date.now()+Math.random(),isFromTemplate:true}));
+      d.m[k]=def;
+    }
+    return d.m[k];
+  };
   const setM = (c,y,m,v) => { d.m[key(c,y,m)]=v; save(); };
   load();
   return {
@@ -633,6 +642,9 @@ const DB = (() => {
     delRev: (c,y,m,id) => { const M=getM(c,y,m); M.revs=M.revs.filter(r=>r.id!==id); setM(c,y,m,M); },
     addExp: (c,y,m,e) => { const M=getM(c,y,m); e.id=Date.now()+Math.random(); M.exps.push(e); setM(c,y,m,M); return e; },
     delExp: (c,y,m,id) => { const M=getM(c,y,m); M.exps=M.exps.filter(e=>e.id!==id); setM(c,y,m,M); },
+    getTemplates: cid => (d.tmpl||{})[cid]||[],
+    addTemplate: (cid,t) => { d.tmpl=d.tmpl||{}; d.tmpl[cid]=d.tmpl[cid]||[]; t.tmplId=Date.now()+Math.random(); d.tmpl[cid].push(t); save(); return t; },
+    delTemplate: (cid,tmplId) => { d.tmpl=d.tmpl||{}; d.tmpl[cid]=(d.tmpl[cid]||[]).filter(t=>t.tmplId!==tmplId); save(); },
     totals: (c,y,m) => {
       const M=getM(c,y,m);
       const funds=Object.values(M.bal).reduce((s,v)=>s+(v||0),0);
@@ -881,6 +893,7 @@ function renderAllTasks() {
         ${esc(e.name.length>60?e.name.slice(0,60)+'…':e.name)}
         <div class="cell-note">
           <span class="tbl-comp">${esc(e._coLabel)}</span>
+          ${(e.isTemplate||e.isFromTemplate)?' · <span style="color:var(--blue);font-size:10px">🔄 pastovi</span>':''}
           ${cat?' · '+cat.i+' '+cat.l:''}
           ${urgLabel?` · <span style="color:var(--red);font-weight:600">${urgLabel}</span>`:''}
         </div>
@@ -951,7 +964,7 @@ function renderCompany(co, full=false) {
     return `<div class="tbl-row tbl-exp${urgClass?' urg-'+urgClass:''}">
       <div class="cell cell-name">
         ${esc(e.name.length>55?e.name.slice(0,55)+'…':e.name)}
-        <div class="cell-note">${cat?cat.i+' '+cat.l:''}${e.note?' · '+esc(e.note.slice(0,40)):''}</div>
+        <div class="cell-note">${(e.isTemplate||e.isFromTemplate)?'<span style="color:var(--blue);font-size:10px">🔄</span> ':''}${cat?cat.i+' '+cat.l:''}${e.note?' · '+esc(e.note.slice(0,40)):''}</div>
       </div>
       <div class="cell cell-amt neg">${fmt(e.amt)}</div>
       <div class="cell cell-due${urgClass==='ov'?' ov':urgClass==='hi'?' hi':''}">
@@ -965,6 +978,22 @@ function renderCompany(co, full=false) {
 
   const expTotal = M.exps.reduce((s,e)=>s+(e.amt||0),0);
 
+  const tmpls = DB.getTemplates(co.id);
+  const tmplSection = (!isView && full && tmpls.length) ? `
+    <div style="border-top:2px solid var(--border)">
+      <div style="padding:6px 16px 4px;font-size:9.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text3);background:var(--bg)">
+        🔄 Pastoviųjų šablonai — automatiškai pridedami naujo mėnesio pradžioje
+      </div>
+      ${tmpls.map(t=>{const tc=CATS.find(c=>c.id===t.cat);return`<div style="display:flex;align-items:center;gap:8px;padding:7px 16px;border-bottom:1px solid var(--border);font-size:12.5px;background:var(--blue-t)">
+        <span style="color:var(--blue)">🔄</span>
+        <span style="flex:1;color:var(--text)">${esc(t.name)}</span>
+        <span style="font-family:var(--mono);color:var(--red)">${fmt(t.amt)}</span>
+        <span style="color:var(--text3);min-width:55px;text-align:right">${t.due?'iki '+t.due+'d.':'—'}</span>
+        <span style="font-size:11px;color:var(--text3)">${tc?tc.i+' '+tc.l:''}</span>
+        <button class="del-btn" onclick="delTemplate('${co.id}',${t.tmplId})" title="Pašalinti šabloną">✕</button>
+      </div>`;}).join('')}
+    </div>` : '';
+
   const addExpForm = isView ? '' : `
     <div class="add-form admin-only">
       <div class="ff" style="flex:2"><label>Pavadinimas</label>
@@ -975,8 +1004,11 @@ function renderCompany(co, full=false) {
         <input type="number" min="1" max="31" id="ed-${co.id}" placeholder="15"></div>
       <div class="ff" style="max-width:130px"><label>Kategorija</label>
         <select id="ec-${co.id}">${CATS.map(c=>`<option value="${c.id}">${c.i} ${c.l}</option>`).join('')}</select></div>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--text2);white-space:nowrap;padding-bottom:1px">
+        <input type="checkbox" id="er-${co.id}" style="accent-color:var(--blue)"> 🔄 Pastovi
+      </label>
       <button class="btn btn-blue btn-sm" onclick="addExp('${co.id}')">+ Pridėti</button>
-    </div>`;
+    </div>${tmplSection}`;
 
   // Revenues (only show in full/individual view)
   let revSection = '';
@@ -1052,14 +1084,24 @@ function addExp(cid) {
   let amt=parseFloat(document.getElementById('ea-'+cid).value)||0;
   const due=parseInt(document.getElementById('ed-'+cid).value)||null;
   const cat=document.getElementById('ec-'+cid).value;
+  const recurEl=document.getElementById('er-'+cid);
+  const recurring=recurEl?recurEl.checked:false;
   if(!name){toast('Įvesk pavadinimą','err');return;}
   if(amt===0){toast('Įvesk sumą','err');return;}
   if(amt>0)amt=-amt;
-  DB.addExp(cid,yr,mo,{name,amt,due,cat,note:'',paid:false});
+  DB.addExp(cid,yr,mo,{name,amt,due,cat,note:'',isTemplate:recurring});
+  if(recurring) DB.addTemplate(cid,{name,amt,due,cat,note:''});
   document.getElementById('en-'+cid).value='';
   document.getElementById('ea-'+cid).value='';
   document.getElementById('ed-'+cid).value='';
-  toast('Išlaida pridėta');
+  if(recurEl) recurEl.checked=false;
+  toast(recurring?'🔄 Pastovi išlaida įsiminta':'Išlaida pridėta', recurring?'ok':'');
+  render();
+}
+
+function delTemplate(cid, tmplId) {
+  DB.delTemplate(cid, tmplId);
+  toast('Šablonas pašalintas');
   render();
 }
 
