@@ -1,162 +1,1214 @@
-<!DOCTYPE html>
-<html lang="lt">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ritmo — Finansų valdymas</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
+<style>
+/* ── DESIGN TOKENS ── */
+:root {
+  --navy:     #0B1F3A;
+  --navy2:    #162F57;
+  --blue:     #1A56DB;
+  --blue-h:   #1347C0;
+  --blue-t:   #EDF3FF;
+  --blue-t2:  #D8E8FF;
+  --gold:     #A07800;
+  --gold-t:   #FFF8E0;
+  --bg:       #F2F5FA;
+  --surf:     #FFFFFF;
+  --border:   #D0DCEE;
+  --border2:  #BBC9DE;
+  --text:     #0A1929;
+  --text2:    #4A5E78;
+  --text3:    #8FA4BC;
+  --green:    #0A6B44;
+  --green-t:  #E6F5EE;
+  --red:      #C21A1A;
+  --red-t:    #FEF0F0;
+  --amber:    #8C6200;
+  --amber-t:  #FFF4D6;
+  --mono:     ui-monospace,'Courier New',monospace;
+  --sans:     'Helvetica Neue','Arial',system-ui,sans-serif;
+  --r:        8px;
+  --rs:       5px;
+  --shadow:   0 1px 3px rgba(10,25,60,.08), 0 1px 2px rgba(10,25,60,.05);
+  --shadow2:  0 4px 12px rgba(10,25,60,.1);
+}
 
-<!-- Header -->
-<header class="app-header">
-  <div class="app-logo">Ritmo <span>Finansai</span></div>
-  <div class="header-mode">
-    <div id="mode-badge" class="mode-badge">Admin</div>
-    <button class="btn btn-ghost btn-sm admin-only" onclick="copyViewLink()" title="Nukopijuoti partnerio nuorodą">
-      👁 Dalintis (view)
-    </button>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── TOP BAR ── */
+.topbar {
+  background: var(--navy);
+  height: 54px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.logo-mark {
+  width: 30px; height: 30px;
+  background: var(--blue);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800; color: #fff;
+  letter-spacing: -0.5px;
+}
+.logo-text { font-size: 14px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+.logo-sub { font-size: 10px; color: rgba(255,255,255,.45); font-weight: 500; }
+
+.topbar-mid { flex: 1; display: flex; align-items: center; gap: 6px; justify-content: center; }
+
+.nav-pill {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: rgba(255,255,255,.55);
+  border: 1px solid transparent;
+  transition: all .15s;
+  white-space: nowrap;
+  user-select: none;
+}
+.nav-pill:hover { color: rgba(255,255,255,.85); border-color: rgba(255,255,255,.15); }
+.nav-pill.on { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.25); color: #fff; }
+
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.mode-chip {
+  font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 20px;
+  background: rgba(26,86,219,.35); color: #7BB3FF;
+  border: 1px solid rgba(26,86,219,.4);
+}
+.mode-chip.view { background: rgba(160,120,0,.3); color: #FFC947; border-color: rgba(160,120,0,.4); }
+
+/* ── MONTH BAR ── */
+.monthbar {
+  background: var(--navy2);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 12px;
+}
+.mbtn {
+  background: rgba(255,255,255,.1);
+  border: none; color: rgba(255,255,255,.7);
+  width: 26px; height: 26px;
+  border-radius: var(--rs); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  transition: all .12s;
+}
+.mbtn:hover { background: rgba(255,255,255,.18); color: #fff; }
+.mlabel {
+  font-size: 13px; font-weight: 700; color: #fff;
+  letter-spacing: -.2px; text-transform: capitalize;
+  min-width: 140px;
+}
+.sheets-btn {
+  margin-left: auto;
+  font-size: 11px; font-weight: 600;
+  padding: 4px 12px;
+  border-radius: var(--rs);
+  border: 1px solid rgba(255,255,255,.2);
+  background: transparent; color: rgba(255,255,255,.7);
+  cursor: pointer; transition: all .12s;
+  display: flex; align-items: center; gap: 5px;
+}
+.sheets-btn:hover { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.35); }
+.sheets-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.sheets-dot.off { background: rgba(255,255,255,.3); }
+
+/* ── GRAND TOTAL STRIP ── */
+.grand-strip {
+  background: var(--navy);
+  padding: 16px 24px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: center;
+  border-bottom: 2px solid rgba(255,255,255,.06);
+}
+.grand-left { display: flex; flex-direction: column; gap: 4px; }
+.grand-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,.4); }
+.grand-value {
+  font-family: var(--mono);
+  font-size: 32px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+  line-height: 1;
+  color: #fff;
+}
+.grand-value.pos { color: #4ade80; }
+.grand-value.warn { color: #FFC947; }
+.grand-value.neg { color: #FC8181; }
+.grand-status { font-size: 11px; font-weight: 600; margin-top: 2px; }
+
+.grand-kpis { display: flex; gap: 24px; }
+.gkpi { text-align: right; }
+.gkpi-label { font-size: 9.5px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: rgba(255,255,255,.35); margin-bottom: 3px; }
+.gkpi-value { font-family: var(--mono); font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.8); }
+.gkpi-value.g { color: #4ade80; }
+.gkpi-value.r { color: #FC8181; }
+
+/* ── MAIN LAYOUT ── */
+.main { max-width: 1080px; margin: 0 auto; padding: 20px 20px 60px; display: flex; flex-direction: column; gap: 16px; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-head {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: var(--surf);
+}
+.card-title {
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: .7px; text-transform: uppercase;
+  color: var(--text3);
+}
+.card-body { padding: 0; }
+
+/* ── SECTION DIVIDERS ── */
+.sec-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 16px;
+  height: 38px;
+  background: var(--blue-t);
+  border-bottom: 1px solid var(--blue-t2);
+}
+.sec-title {
+  font-size: 11px; font-weight: 800;
+  letter-spacing: .8px; text-transform: uppercase;
+  color: var(--blue);
+}
+.sec-funds {
+  font-family: var(--mono);
+  font-size: 11.5px; font-weight: 700;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+.sec-proj { font-size: 11px; color: var(--text3); }
+
+/* ── BALANCE GRID ── */
+.bal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--border);
+}
+.bal-cell {
+  background: var(--surf);
+  padding: 10px 14px;
+}
+.bal-cell label { display: block; font-size: 10px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: var(--text3); margin-bottom: 3px; }
+.bal-inp {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 0;
+}
+.bal-inp:focus { color: var(--blue); }
+.bal-inp[readonly] { color: var(--text2); cursor: default; }
+
+/* ── PROJECTION ROW ── */
+.proj-row {
+  display: flex; align-items: center; gap: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surf);
+}
+.proj-cell {
+  flex: 1; padding: 10px 14px;
+  border-right: 1px solid var(--border);
+}
+.proj-cell:last-child { border-right: none; }
+.proj-cell label { display: block; font-size: 10px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: var(--text3); margin-bottom: 3px; }
+.proj-inp {
+  font-family: var(--mono);
+  font-size: 15px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  border: none; background: transparent; outline: none;
+  width: 100%;
+}
+.proj-inp:focus { color: var(--blue); }
+.proj-inp[readonly] { color: var(--text2); cursor: default; }
+
+.prog-bar { flex: 2; padding: 10px 14px; }
+.prog-bar label { display: block; font-size: 10px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: var(--text3); margin-bottom: 5px; }
+.prog-track { height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width .4s ease; }
+.prog-meta { display: flex; justify-content: space-between; font-size: 10px; color: var(--text3); margin-top: 3px; }
+
+/* ── TABLE ── */
+.tbl-head, .tbl-row {
+  display: grid;
+  align-items: center;
+  padding: 0 16px;
+}
+/* Expenses: name | amount | due | action */
+.tbl-exp { grid-template-columns: 1fr 110px 90px 36px; gap: 0; }
+/* Revenues: date | loc/fiscal | cash | card | total | action */
+.tbl-rev { grid-template-columns: 88px 1fr 92px 92px 100px 36px; }
+
+.tbl-head {
+  height: 32px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.tbl-row {
+  min-height: 38px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surf);
+  transition: background .1s;
+}
+.tbl-row:last-child { border-bottom: none; }
+.tbl-row:hover { background: var(--blue-t); }
+
+/* Urgency via left border on expense rows */
+.tbl-row.urg-ov { border-left: 3px solid var(--red); }
+.tbl-row.urg-hi { border-left: 3px solid var(--amber); }
+.tbl-row.urg-lo { border-left: 3px solid #C5D8F0; }
+
+.cell { padding: 8px 8px; font-size: 13px; }
+.cell:first-child { padding-left: 16px; }
+.cell:last-child { padding-right: 10px; }
+.cell-name { font-weight: 500; line-height: 1.3; }
+.cell-note { font-size: 10.5px; color: var(--text3); margin-top: 1px; }
+.cell-amt { font-family: var(--mono); font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.cell-amt.neg { color: var(--red); }
+.cell-amt.pos { color: var(--green); }
+.cell-due { font-size: 11.5px; color: var(--text3); text-align: center; }
+.cell-due.ov { color: var(--red); font-weight: 700; }
+.cell-due.hi { color: var(--amber); font-weight: 600; }
+.cell-cash { font-family: var(--mono); font-size: 12.5px; color: var(--amber); font-variant-numeric: tabular-nums; text-align: right; }
+.cell-card { font-family: var(--mono); font-size: 12.5px; color: var(--blue); font-variant-numeric: tabular-nums; text-align: right; }
+.cell-loc { font-size: 11.5px; color: var(--text2); }
+
+/* ── TOTAL ROW ── */
+.tbl-total {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 16px;
+  background: var(--bg);
+  border-top: 2px solid var(--border);
+}
+.tbl-total-label { font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text3); }
+.tbl-total-val { font-family: var(--mono); font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--red); }
+
+/* ── ADD FORM ── */
+.add-form {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 10px 16px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.ff { flex: 1; min-width: 90px; }
+.ff label { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text3); margin-bottom: 3px; }
+.ff input, .ff select {
+  width: 100%;
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+  color: var(--text);
+  padding: 6px 9px;
+  font-size: 13px;
+  font-family: var(--sans);
+  transition: border-color .12s;
+}
+.ff input:focus, .ff select:focus { outline: none; border-color: var(--blue); }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 14px;
+  border-radius: var(--rs);
+  font-size: 12.5px; font-weight: 700;
+  cursor: pointer; border: none;
+  font-family: var(--sans);
+  transition: all .13s; white-space: nowrap;
+}
+.btn-blue { background: var(--blue); color: #fff; }
+.btn-blue:hover { background: var(--blue-h); }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text2); }
+.btn-ghost:hover { border-color: var(--border2); color: var(--text); }
+.btn-sm { padding: 5px 10px; font-size: 11.5px; }
+
+.del-btn {
+  width: 28px; height: 28px;
+  border: none; background: transparent;
+  color: var(--text3); cursor: pointer;
+  border-radius: var(--rs);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  transition: all .12s;
+}
+.del-btn:hover { background: var(--red-t); color: var(--red); }
+
+/* ── ALL TASKS VIEW ── */
+.alltasks-head {
+  background: var(--navy); color: #fff;
+  padding: 11px 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.alltasks-title { font-size: 11px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; }
+.alltasks-sum { margin-left: auto; font-family: var(--mono); font-size: 16px; font-weight: 800; color: #FC8181; font-variant-numeric: tabular-nums; }
+.alltasks-count { font-size: 11px; color: rgba(255,255,255,.45); }
+
+.tbl-comp { font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--blue); }
+
+/* ── SHEETS MODAL ── */
+.overlay {
+  position: fixed; inset: 0; background: rgba(10,25,60,.6);
+  z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.modal {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow2);
+  width: 100%; max-width: 560px;
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-head h3 { font-size: 15px; font-weight: 700; }
+.modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.modal-foot { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+.form-field { }
+.form-field label { display: block; font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
+.form-field input, .form-field textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+  color: var(--text);
+  padding: 8px 11px;
+  font-size: 13px;
+  font-family: var(--sans);
+}
+.form-field input:focus, .form-field textarea:focus { outline: none; border-color: var(--blue); }
+.form-field textarea { height: 100px; resize: vertical; font-family: var(--mono); font-size: 11.5px; }
+
+.info-box {
+  background: var(--blue-t);
+  border: 1px solid var(--blue-t2);
+  border-radius: var(--rs);
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.6;
+}
+.info-box strong { color: var(--text); }
+.info-box code {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: rgba(26,86,219,.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--blue);
+}
+
+.steps { display: flex; flex-direction: column; gap: 10px; counter-reset: step; }
+.step { display: flex; gap: 10px; align-items: flex-start; }
+.step::before {
+  counter-increment: step;
+  content: counter(step);
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font-size: 10px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+}
+.step-text { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
+.step-text strong { color: var(--text); }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  background: var(--navy);
+  border: 1px solid var(--blue);
+  color: #fff;
+  padding: 9px 16px;
+  border-radius: var(--rs);
+  font-size: 12.5px; font-weight: 600;
+  z-index: 999;
+  animation: ta .18s ease;
+  max-width: 300px;
+}
+.toast.err { border-color: var(--red); color: #FC8181; }
+.toast.ok  { border-color: #4ade80; color: #4ade80; }
+@keyframes ta { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ── EMPTY ── */
+.empty { padding: 20px 16px; text-align: center; color: var(--text3); font-size: 12.5px; }
+
+/* ── VIEW MODE ── */
+body.view-mode .admin-only { display: none !important; }
+body.view-mode input, body.view-mode select { pointer-events: none; opacity: .75; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 760px) {
+  .grand-kpis { display: none; }
+  .tbl-rev { grid-template-columns: 75px 1fr 80px 80px 36px; }
+  .tbl-rev .cell-card { display: none; }
+  .add-form { flex-direction: column; }
+  .ff { min-width: 100%; }
+  .topbar-mid { display: none; }
+}
+</style>
+
+<!-- ══ HTML ══ -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-mark">R</div>
+    <div><div class="logo-text">Ritmo</div><div class="logo-sub">Finansų valdymas</div></div>
   </div>
-</header>
-
-<!-- Company tabs -->
-<div class="company-tabs" id="company-tabs"></div>
-
-<!-- Month navigation -->
-<div class="month-bar">
-  <button class="month-nav" onclick="prevMonth()">‹</button>
-  <span class="month-label" id="month-label"></span>
-  <button class="month-nav" onclick="nextMonth()">›</button>
+  <div class="topbar-mid" id="nav"></div>
+  <div class="topbar-right">
+    <div class="mode-chip" id="mode-chip">Admin</div>
+    <button class="btn btn-ghost btn-sm" style="color:rgba(255,255,255,.6);border-color:rgba(255,255,255,.2);" onclick="copyViewLink()" id="view-btn">👁 View link</button>
+  </div>
 </div>
 
-<!-- Main content -->
-<main class="main">
+<div class="monthbar">
+  <button class="mbtn" onclick="prevMo()">‹</button>
+  <span class="mlabel" id="mlabel"></span>
+  <button class="mbtn" onclick="nextMo()">›</button>
+  <button class="sheets-btn admin-only" onclick="openSheets()" id="sheets-btn">
+    <div class="sheets-dot off" id="sheets-dot"></div>
+    Google Sheets
+  </button>
+</div>
 
-  <!-- Summary -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Santrauka</span>
-    </div>
-    <div class="card-body">
-      <div class="summary-grid" id="summary"></div>
-    </div>
-  </div>
+<div class="grand-strip" id="grand-strip"></div>
 
-  <!-- Balances -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Sąskaitos ir kasos — šiandienos likučiai</span>
-      <span style="font-size:11px;color:var(--text3)">Atnaujink kiekvieną dieną</span>
-    </div>
-    <div class="card-body">
-      <div class="balance-grid" id="balances"></div>
-    </div>
-  </div>
+<main class="main" id="main"></main>
 
-  <!-- Projection -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Pajamų projekcija vs faktinė</span>
+<!-- Google Sheets modal -->
+<div class="overlay" id="sheets-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Google Sheets sinchronizacija</h3>
+      <button class="del-btn" onclick="closeSheets()">✕</button>
     </div>
-    <div class="card-body" id="projection"></div>
-  </div>
-
-  <!-- Revenues -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Dienos čekiai (apyvarta)</span>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span style="font-size:11px;color:var(--text3)">Grynai → kasa, kortele → sąskaita +1d.</span>
-        <button class="btn btn-ghost btn-sm admin-only" onclick="showWebhookInfo()">⚡ Make.com</button>
-      </div>
-    </div>
-    <div class="card-body" id="revenues"></div>
-  </div>
-
-  <!-- Expenses -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Išlaidos</span>
-      <div style="display:flex;gap:8px">
-        <span id="expense-totals" style="font-size:12px;color:var(--text3)"></span>
-      </div>
-    </div>
-    <div class="card-body" id="expenses"></div>
-  </div>
-
-  <!-- Make.com webhook info (hidden by default) -->
-  <div class="card admin-only" id="webhook-card" style="display:none">
-    <div class="card-header">
-      <span class="card-title">Make.com integracija — čekių importas</span>
-      <button class="btn-icon" onclick="document.getElementById('webhook-card').style.display='none'">✕</button>
-    </div>
-    <div class="card-body">
-      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
-        Make.com scenarijo struktūra: <strong>FB Messenger → OCR → Parse → HTTP POST</strong><br>
-        Žemiau — JSON formatas kurį siųsti į Google Apps Script endpoint.
-      </p>
-
-      <div style="margin-bottom:12px">
-        <div class="webhook-label">POST body (JSON) — vienas čekis:</div>
-        <div class="webhook-box">{
-  "companyId": "darts",
-  "year": 2026,
-  "month": 8,
-  "date": "2026-08-10",
-  "location": "Palanga",
-  "cash": 101.50,
-  "card": 419.19,
-  "total": 520.69,
-  "fiscalNr": "00011607"
-}</div>
+    <div class="modal-body">
+      <div class="info-box">
+        Tavo lapas yra vienas ilgas lapas su sekcijomis <strong>DARTS</strong>, <strong>UPTOWN</strong>, <strong>RITMAS</strong>. Sistema automatiškai atpažins struktūrą.
       </div>
 
-      <div style="margin-bottom:12px">
-        <div class="webhook-label">Make.com → Google Apps Script (doPost) kodo šablonas:</div>
-        <div class="webhook-box">function doPost(e) {
-  const d = JSON.parse(e.postData.contents);
-  const ss = SpreadsheetApp.openById('YOUR_SHEET_ID');
-  const sheet = ss.getSheetByName(d.companyId + '-revenues');
-  sheet.appendRow([d.date, d.location, d.cash, d.card, d.total, d.fiscalNr, new Date()]);
-  return ContentService.createTextOutput('{"status":"ok"}')
-    .setMimeType(ContentService.MimeType.JSON);
-}</div>
+      <div class="steps">
+        <div class="step"><div class="step-text"><strong>Atidaryk Google Sheets</strong> → Failas → Dalintis ir eksportuoti → Skelbti žiniatinklyje</div></div>
+        <div class="step"><div class="step-text">Pasirink lapą, formatą <strong>CSV</strong>, spausk <strong>Skelbti</strong></div></div>
+        <div class="step"><div class="step-text">Nukopijuok gautą URL ir įklijuok žemiau</div></div>
       </div>
 
-      <div style="margin-bottom:12px">
-        <div class="webhook-label">Testavimas (browser console):</div>
-        <div class="webhook-box">window.importReceipt({"companyId":"darts","year":2026,"month":8,"date":"2026-08-11","location":"Vilnius","cash":200,"card":350,"total":550,"fiscalNr":"00011700"})</div>
+      <div class="form-field">
+        <label>Google Sheets Published CSV URL</label>
+        <input type="url" id="sheets-url" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" value="">
       </div>
 
-      <p style="font-size:12px;color:var(--text3)">
-        Pilnas Make.com scenarijo aprašymas: FB Messenger Webhook → Router (ar nuotrauka?) →
-        Vision API / Claude API (OCR+parse) → HTTP POST į Apps Script → patvirtinimas atgal į Messenger.
-      </p>
+      <div style="border-top:1px solid var(--border);padding-top:14px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);margin-bottom:8px">Arba įklijuok CSV tekstą tiesiai (Sheets → Failas → Atsisiųsti → CSV)</div>
+        <div class="form-field">
+          <label>CSV turinys (paste)</label>
+          <textarea id="sheets-csv" placeholder="Čia įklijuok CSV..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeSheets()">Atšaukti</button>
+      <button class="btn btn-blue" onclick="importSheets()">⬇ Importuoti</button>
     </div>
   </div>
+</div>
 
-</main>
-
-<script src="config.js"></script>
-<script src="store.js"></script>
-<script src="app.js"></script>
 <script>
-  // Update mode badge
-  document.addEventListener('DOMContentLoaded', () => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('mode') === 'view') {
-      document.getElementById('mode-badge').textContent = 'View only';
-      document.getElementById('mode-badge').classList.add('view');
+// ══════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════
+const COMPANIES = [
+  { id:'darts',  label:'DARTS',  name:'UAB Smiginis ir Biliardas',
+    accs:[{id:'eu',l:'EU sąskaita'},{id:'vln',l:'Sąsk. Vilnius'},{id:'plg',l:'Sąsk. Palanga'}],
+    cash:[{id:'vln_k',l:'Kasa Vilnius'},{id:'plg_k',l:'Kasa Palanga'}],
+    locs:['Vilnius','Palanga'] },
+  { id:'uptown', label:'UPTOWN', name:'UAB Naujamiesčio biliardine',
+    accs:[{id:'main',l:'Pagrindinė sąskaita'},{id:'pay',l:'Paysera'},{id:'seb',l:'SEB sąskaita'}],
+    cash:[{id:'kasa',l:'Kasa'}],
+    locs:['Vilnius'] },
+  { id:'ritmas', label:'RITMAS', name:'UAB Ritmo renginiai',
+    accs:[{id:'pay',l:'Paysera'},{id:'seb',l:'SEB sąskaita'}],
+    cash:[{id:'kasa',l:'Kasa'}],
+    locs:['Vilnius'] },
+];
+
+const CATS = [
+  {id:'rent',l:'Nuoma',i:'🏠'},{id:'util',l:'Komunaliniai',i:'💡'},
+  {id:'sal',l:'Algos',i:'👥'},{id:'tax',l:'VMI / Sodra',i:'🏛️'},
+  {id:'sup',l:'Tiekėjai',i:'🚚'},{id:'bank',l:'Bankas',i:'🏦'},
+  {id:'mkt',l:'Marketingas',i:'📣'},{id:'net',l:'Internetas',i:'📡'},
+  {id:'food',l:'Maistas / Prekės',i:'🍺'},{id:'other',l:'Kita',i:'📋'},
+];
+
+const SK = 'ritmo_fin_v3';
+let yr = 2026, mo = 8, isView = false;
+let currentView = 'all'; // 'all' | 'darts' | 'uptown' | 'ritmas'
+
+// ══════════════════════════════════════════
+// STORE
+// ══════════════════════════════════════════
+const DB = (() => {
+  let d;
+  const load = () => { try { d = JSON.parse(localStorage.getItem(SK)) || {m:{},cfg:{}}; } catch { d={m:{},cfg:{}}; } };
+  const save = () => localStorage.setItem(SK, JSON.stringify(d));
+  const key = (c,y,m) => `${c}-${y}-${String(m).padStart(2,'0')}`;
+  const co = id => COMPANIES.find(c=>c.id===id);
+  const defM = id => {
+    const bal={};
+    co(id).accs.forEach(a=>bal[a.id]=0);
+    co(id).cash.forEach(r=>bal[r.id]=0);
+    return {bal,proj:0,revs:[],exps:[]};
+  };
+  const getM = (c,y,m) => { const k=key(c,y,m); if(!d.m[k]) d.m[k]=defM(c); return d.m[k]; };
+  const setM = (c,y,m,v) => { d.m[key(c,y,m)]=v; save(); };
+  load();
+  return {
+    load, save, getM, setM,
+    cfg: () => d.cfg||{},
+    setCfg: (k,v) => { d.cfg=d.cfg||{}; d.cfg[k]=v; save(); },
+    setBal: (c,y,m,id,v) => { const M=getM(c,y,m); M.bal[id]=parseFloat(v)||0; setM(c,y,m,M); },
+    setProj: (c,y,m,v) => { const M=getM(c,y,m); M.proj=parseFloat(v)||0; setM(c,y,m,M); },
+    addRev: (c,y,m,r) => { const M=getM(c,y,m); r.id=Date.now()+Math.random(); M.revs.push(r); setM(c,y,m,M); return r; },
+    delRev: (c,y,m,id) => { const M=getM(c,y,m); M.revs=M.revs.filter(r=>r.id!==id); setM(c,y,m,M); },
+    addExp: (c,y,m,e) => { const M=getM(c,y,m); e.id=Date.now()+Math.random(); M.exps.push(e); setM(c,y,m,M); return e; },
+    delExp: (c,y,m,id) => { const M=getM(c,y,m); M.exps=M.exps.filter(e=>e.id!==id); setM(c,y,m,M); },
+    totals: (c,y,m) => {
+      const M=getM(c,y,m);
+      const funds=Object.values(M.bal).reduce((s,v)=>s+(v||0),0);
+      const earned=M.revs.reduce((s,r)=>s+(r.total||0),0);
+      const remain=Math.max(0,M.proj-earned);
+      const unpaid=M.exps.reduce((s,e)=>s+(e.amt||0),0);
+      return {funds,earned,remain,unpaid,eob:funds+remain+unpaid,revCnt:M.revs.length,expCnt:M.exps.length};
+    },
+    allExp: (y,m) => COMPANIES.flatMap(co=>getM(co.id,y,m).exps.map(e=>({...e,_co:co.id,_coLabel:co.label}))),
+    grandFunds: (y,m) => COMPANIES.reduce((s,co)=>s+Object.values(getM(co.id,y,m).bal).reduce((a,v)=>a+(v||0),0),0),
+    grandEob: (y,m) => COMPANIES.reduce((s,co)=>s+DB.totals(co.id,y,m).eob,0),
+    grandUnpaid: (y,m) => COMPANIES.reduce((s,co)=>s+DB.totals(co.id,y,m).unpaid,0),
+  };
+})();
+
+// ══════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmt = (n,d=2) => {
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  return new Intl.NumberFormat('lt-LT',{minimumFractionDigits:d,maximumFractionDigits:d}).format(n)+' €';
+};
+const fmtK = n => {
+  if(!n&&n!==0) return '—';
+  const v=Math.abs(n), neg=n<0;
+  return (neg?'−':'')+new Intl.NumberFormat('lt-LT',{maximumFractionDigits:0}).format(v)+' €';
+};
+const mname = (m,y) => new Date(y,m-1,1).toLocaleString('lt-LT',{month:'long',year:'numeric'});
+const urg = (due, paid) => {
+  if(paid) return '';
+  if(!due) return '';
+  const d=new Date(), today=d.getDate();
+  const diff=due-today;
+  if(diff<0) return 'ov';
+  if(diff<=3) return 'hi';
+  if(diff<=7) return 'lo';
+  return '';
+};
+const toast = (msg,type='') => {
+  const el=document.createElement('div');
+  el.className='toast'+(type?' '+type:'');
+  el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),3000);
+};
+
+// ══════════════════════════════════════════
+// CSV PARSER — detects DARTS/UPTOWN/RITMAS sections
+// ══════════════════════════════════════════
+function parseCSV(text) {
+  const rows = text.split('\n').map(r => {
+    const cells = [];
+    let cur = '', inQ = false;
+    for(let ch of r) {
+      if(ch==='"') { inQ=!inQ; }
+      else if(ch===','&&!inQ) { cells.push(cur.trim()); cur=''; }
+      else cur+=ch;
     }
+    cells.push(cur.trim());
+    return cells;
   });
 
-  function showWebhookInfo() {
-    const card = document.getElementById('webhook-card');
-    card.style.display = card.style.display === 'none' ? 'block' : 'none';
-    card.scrollIntoView({ behavior: 'smooth' });
+  const data = {};
+  COMPANIES.forEach(co => data[co.id]={bal:{},proj:0,exps:[],revs:[]});
+
+  let currentSec = null;
+  const SECTION_KEYS = { DARTS:'darts', UPTOWN:'uptown', RITMAS:'ritmas', RITMAS_CO:'ritmas', UGPJUTIS:'ritmas' };
+  const MONTH_NAMES = ['sausis','vasaris','kovas','balandis','geguze','birezelis','liepa','rugpjutis','rugsejis','spalis','lapkritis','gruodis','sausis','vasaris','kovas','gegužė','birželis','liepa','rugpjūtis','rugsėjis','spalis','lapkritis','gruodis'];
+  const BALANCE_KEYS = ['pinigai','kasa','paysera','seb','eu sask','saskaito'];
+
+  for(const row of rows) {
+    const a = (row[0]||'').trim();
+    const b = (row[1]||'').trim();
+    const c = (row[2]||'').trim();
+
+    // Detect section header
+    const aUp = a.toUpperCase();
+    if(aUp==='DARTS'||b==='DARTS') { currentSec='darts'; continue; }
+    if(aUp==='UPTOWN'||b==='UPTOWN') { currentSec='uptown'; continue; }
+    if(aUp==='RITMAS'||b==='RITMAS') { currentSec='ritmas'; continue; }
+    if(!currentSec) continue;
+
+    const bNum = parseFloat(b.replace(',','.'));
+    const isNum = !isNaN(bNum) && b!=='';
+
+    if(!isNum) continue;
+
+    const aLow = a.toLowerCase();
+    const isBalRow = BALANCE_KEYS.some(k=>aLow.includes(k));
+    const isMonthRow = MONTH_NAMES.some(k=>aLow.includes(k));
+    const isExpense = isNum && bNum < 0;
+    const isIncome = isNum && bNum > 0 && !isBalRow && !isMonthRow;
+
+    if(isBalRow) {
+      // Try to infer account id from label
+      let id = 'other';
+      if(aLow.includes('eu')) id='eu';
+      else if(aLow.includes('kasa')&&aLow.includes('vilnius')) id='vln_k';
+      else if(aLow.includes('kasa')&&aLow.includes('palanga')) id='plg_k';
+      else if(aLow.includes('kasa')) id='kasa';
+      else if(aLow.includes('paysera')) id='pay';
+      else if(aLow.includes('seb')) id='seb';
+      else if(aLow.includes('vilnius')) id='vln';
+      else if(aLow.includes('palanga')) id='plg';
+      else if(aLow.includes('main')) id='main';
+      data[currentSec].bal[id] = bNum;
+    } else if(isMonthRow) {
+      if(bNum>1000) data[currentSec].proj = bNum;
+    } else if(isExpense) {
+      // Parse due day from C column text
+      let due = null;
+      const dueMtc = (c+' '+a).match(/iki\s+(\d+)/i);
+      if(dueMtc) due=parseInt(dueMtc[1]);
+      // Determine category
+      let cat='other';
+      if(aLow.includes('nuoma')||aLow.includes('rent')) cat='rent';
+      else if(aLow.includes('komunal')||aLow.includes('util')) cat='util';
+      else if(aLow.includes('alg')||aLow.includes('salary')) cat='sal';
+      else if(aLow.includes('sodra')||aLow.includes('vmi')||aLow.includes('gpm')||aLow.includes('pvm')) cat='tax';
+      else if(['svyturys','tridens','coca','pernod','volfas','eurohorecana','tiekejai'].some(k=>aLow.includes(k))) cat='sup';
+      else if(aLow.includes('bank')||aLow.includes('paskolos')||aLow.includes('lizingas')) cat='bank';
+      else if(aLow.includes('market')||aLow.includes('facebook')||aLow.includes('meta')) cat='mkt';
+      else if(aLow.includes('internet')||aLow.includes('tele')||aLow.includes('ogmios')) cat='net';
+      else if(aLow.includes('maistas')||aLow.includes('degal')||aLow.includes('horeca')) cat='food';
+      data[currentSec].exps.push({
+        id: Math.random(),
+        name: a.slice(0,80),
+        amt: bNum,
+        due,
+        cat,
+        note: c.slice(0,60),
+      });
+    }
   }
+
+  return data;
+}
+
+function applyImportedData(parsed) {
+  for(const [cid, sec] of Object.entries(parsed)) {
+    const M = DB.getM(cid, yr, mo);
+    // Apply balances
+    Object.assign(M.bal, sec.bal);
+    // Apply projection if present
+    if(sec.proj) M.proj = sec.proj;
+    // Replace expenses
+    if(sec.exps.length) M.exps = sec.exps;
+    DB.setM(cid, yr, mo, M);
+  }
+}
+
+// ══════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════
+function render() {
+  renderNav();
+  document.getElementById('mlabel').textContent = mname(mo,yr);
+  renderGrand();
+  renderMain();
+}
+
+function renderNav() {
+  const items = [
+    {id:'all', label:'Visi'},
+    ...COMPANIES.map(c=>({id:c.id, label:c.label}))
+  ];
+  document.getElementById('nav').innerHTML = items.map(item=>`
+    <div class="nav-pill${currentView===item.id?' on':''}" onclick="setView('${item.id}')">${esc(item.label)}</div>
+  `).join('');
+}
+
+function renderGrand() {
+  const funds = DB.grandFunds(yr,mo);
+  const eob = DB.grandEob(yr,mo);
+  const unpaid = DB.grandUnpaid(yr,mo);
+  const totalEarned = COMPANIES.reduce((s,co)=>s+DB.totals(co.id,yr,mo).earned,0);
+  const totalProj = COMPANIES.reduce((s,co)=>s+DB.getM(co.id,yr,mo).proj,0);
+
+  const eobClass = eob>5000?'pos':eob>0?'warn':'neg';
+  const statusWord = eob>5000?'Saugus':eob>0?'Atsargiai':'Kritiškai';
+
+  document.getElementById('grand-strip').innerHTML = `
+    <div class="grand-left">
+      <div class="grand-label">Visos įmonės — projekcija mėnesio gale</div>
+      <div class="grand-value ${eobClass}">${fmt(eob,0)}</div>
+      <div class="grand-status ${eobClass==='pos'?'':''}">
+        <span style="color:${eob>5000?'#4ade80':eob>0?'#FFC947':'#FC8181'};font-weight:700;font-size:12px">
+          ${statusWord}
+        </span>
+        <span style="color:rgba(255,255,255,.35);font-size:11px;margin-left:8px">
+          Esami pinigai: ${fmtK(funds)}
+        </span>
+      </div>
+    </div>
+    <div class="grand-kpis">
+      <div class="gkpi">
+        <div class="gkpi-label">Esami (viso)</div>
+        <div class="gkpi-value">${fmtK(funds)}</div>
+      </div>
+      <div class="gkpi">
+        <div class="gkpi-label">Uždirbta</div>
+        <div class="gkpi-value g">${fmtK(totalEarned)}</div>
+      </div>
+      <div class="gkpi">
+        <div class="gkpi-label">Neapmokėta</div>
+        <div class="gkpi-value r">${fmtK(unpaid)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMain() {
+  const sections = [];
+
+  if(currentView==='all') {
+    // All-tasks aggregate view
+    sections.push(renderAllTasks());
+    // Then each company mini-summary
+    COMPANIES.forEach(co => sections.push(renderCompany(co)));
+  } else {
+    const co = COMPANIES.find(c=>c.id===currentView);
+    if(co) sections.push(renderCompany(co, true));
+  }
+
+  document.getElementById('main').innerHTML = sections.join('');
+}
+
+function renderAllTasks() {
+  const allExps = DB.allExp(yr, mo).sort((a,b)=>(a.due||99)-(b.due||99));
+  const total = allExps.reduce((s,e)=>s+(e.amt||0),0);
+
+  if(!allExps.length) {
+    return `<div class="card">
+      <div class="alltasks-head"><span class="alltasks-title">Visos neapmokėtos išlaidos</span></div>
+      <div class="empty">Išlaidų nėra — sinchronizuok iš Google Sheets arba pridėk rankiniu būdu</div>
+    </div>`;
+  }
+
+  const rows = allExps.map(e=>{
+    const urgClass = urg(e.due, false);
+    const cat = CATS.find(c=>c.id===e.cat);
+    const urgLabel = urgClass==='ov'?'⚠ Praleistas':urgClass==='hi'?'⚡ Skubu':'';
+    return `<div class="tbl-row tbl-exp${urgClass?' urg-'+urgClass:''}">
+      <div class="cell cell-name">
+        ${esc(e.name.length>60?e.name.slice(0,60)+'…':e.name)}
+        <div class="cell-note">
+          <span class="tbl-comp">${esc(e._coLabel)}</span>
+          ${cat?' · '+cat.i+' '+cat.l:''}
+          ${urgLabel?` · <span style="color:var(--red);font-weight:600">${urgLabel}</span>`:''}
+        </div>
+      </div>
+      <div class="cell cell-amt neg">${fmt(e.amt)}</div>
+      <div class="cell cell-due${urgClass==='ov'?' ov':urgClass==='hi'?' hi':''}">
+        ${e.due?'iki '+e.due+'d.':'—'}
+      </div>
+      <div class="cell">
+        <button class="del-btn admin-only" onclick="delExpGlobal('${e._co}',${e.id})" title="Pažymėti kaip apmokėta (ištrinti)">✓</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="card">
+    <div class="alltasks-head">
+      <span class="alltasks-title">Visos neapmokėtos išlaidos</span>
+      <span class="alltasks-count">${allExps.length} pozicijos</span>
+      <span class="alltasks-sum">${fmt(total)}</span>
+    </div>
+    <div class="tbl-head tbl-exp" style="padding:0 16px">
+      <span>Pavadinimas</span><span style="text-align:right">Suma</span>
+      <span style="text-align:center">Terminas</span>
+      <span></span>
+    </div>
+    ${rows}
+    <div class="tbl-total">
+      <span class="tbl-total-label">Iš viso neapmokėta</span>
+      <span class="tbl-total-val">${fmt(total)}</span>
+    </div>
+  </div>`;
+}
+
+function renderCompany(co, full=false) {
+  const M = DB.getM(co.id, yr, mo);
+  const T = DB.totals(co.id, yr, mo);
+  const readonly = isView ? 'readonly' : '';
+
+  // Balances section
+  const allAccs = [...co.accs, ...co.cash];
+  const balCells = allAccs.map(a=>`
+    <div class="bal-cell">
+      <label>${esc(a.l)}</label>
+      <input class="bal-inp" type="number" step="0.01" value="${M.bal[a.id]||''}" placeholder="0.00"
+             ${readonly} onchange="DB.setBal('${co.id}',${yr},${mo},'${a.id}',this.value);renderGrand()">
+    </div>`).join('');
+
+  // Projection
+  const pct = M.proj>0?Math.min(100,(T.earned/M.proj)*100):0;
+  const projSection = `
+    <div class="proj-row">
+      <div class="proj-cell"><label>Mėnesio projekcija</label>
+        <input class="proj-inp" type="number" step="100" value="${M.proj||''}" placeholder="0"
+               ${readonly} onchange="DB.setProj('${co.id}',${yr},${mo},this.value);renderGrand();render()"></div>
+      <div class="prog-bar"><label>Progesas</label>
+        <div class="prog-track"><div class="prog-fill" style="width:${pct}%"></div></div>
+        <div class="prog-meta"><span>${fmt(T.earned)}</span><span style="color:var(--green)">${pct.toFixed(1)}%</span><span>iš ${fmtK(M.proj)}</span></div>
+      </div>
+      <div class="proj-cell"><label>Liko uždirbti</label>
+        <input class="proj-inp" type="number" value="${T.remain.toFixed(2)}" readonly></div>
+    </div>`;
+
+  // Expenses
+  const sortedExps = [...M.exps].sort((a,b)=>(a.due||99)-(b.due||99));
+  const expRows = sortedExps.map(e=>{
+    const urgClass = urg(e.due, false);
+    const cat = CATS.find(c=>c.id===e.cat);
+    return `<div class="tbl-row tbl-exp${urgClass?' urg-'+urgClass:''}">
+      <div class="cell cell-name">
+        ${esc(e.name.length>55?e.name.slice(0,55)+'…':e.name)}
+        <div class="cell-note">${cat?cat.i+' '+cat.l:''}${e.note?' · '+esc(e.note.slice(0,40)):''}</div>
+      </div>
+      <div class="cell cell-amt neg">${fmt(e.amt)}</div>
+      <div class="cell cell-due${urgClass==='ov'?' ov':urgClass==='hi'?' hi':''}">
+        ${e.due?'iki '+e.due+'d.':'—'}
+      </div>
+      <div class="cell">
+        <button class="del-btn admin-only" onclick="delExp('${co.id}',${e.id})" title="Apmokėta — ištrinti">✓</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const expTotal = M.exps.reduce((s,e)=>s+(e.amt||0),0);
+
+  const addExpForm = isView ? '' : `
+    <div class="add-form admin-only">
+      <div class="ff" style="flex:2"><label>Pavadinimas</label>
+        <input type="text" id="en-${co.id}" placeholder="pvz. Nuoma Vilnius"></div>
+      <div class="ff"><label>Suma €</label>
+        <input type="number" step="0.01" id="ea-${co.id}" placeholder="-3050"></div>
+      <div class="ff" style="max-width:80px"><label>Terminas d.</label>
+        <input type="number" min="1" max="31" id="ed-${co.id}" placeholder="15"></div>
+      <div class="ff" style="max-width:130px"><label>Kategorija</label>
+        <select id="ec-${co.id}">${CATS.map(c=>`<option value="${c.id}">${c.i} ${c.l}</option>`).join('')}</select></div>
+      <button class="btn btn-blue btn-sm" onclick="addExp('${co.id}')">+ Pridėti</button>
+    </div>`;
+
+  // Revenues (only show in full/individual view)
+  let revSection = '';
+  if(full) {
+    const revRows = [...M.revs].reverse().map(r=>`
+      <div class="tbl-row tbl-rev">
+        <div class="cell">${esc(r.date)}</div>
+        <div class="cell cell-loc">${esc(r.loc||'')}${r.fn?' <span style="color:var(--text3)">#'+esc(r.fn)+'</span>':''}</div>
+        <div class="cell cell-cash">${fmt(r.cash)}</div>
+        <div class="cell cell-card">${fmt(r.card)}</div>
+        <div class="cell cell-amt pos">${fmt(r.total)}</div>
+        <div class="cell"><button class="del-btn admin-only" onclick="delRev('${co.id}',${r.id})" title="Ištrinti">✕</button></div>
+      </div>`).join('');
+    const addRevForm = isView ? '' : `
+      <div class="add-form admin-only">
+        <div class="ff" style="max-width:120px"><label>Data</label>
+          <input type="date" id="rd-${co.id}" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div class="ff" style="max-width:120px"><label>Filialas</label>
+          <select id="rl-${co.id}">${co.locs.map(l=>`<option>${esc(l)}</option>`).join('')}</select></div>
+        <div class="ff"><label>Grynai €</label><input type="number" step="0.01" id="rc-${co.id}" placeholder="0.00"></div>
+        <div class="ff"><label>Kortele €</label><input type="number" step="0.01" id="rk-${co.id}" placeholder="0.00"></div>
+        <div class="ff"><label>Fisk. nr.</label><input type="text" id="rf-${co.id}" placeholder="00011607"></div>
+        <button class="btn btn-blue btn-sm" onclick="addRev('${co.id}')">+ Čekis</button>
+      </div>`;
+    revSection = `
+      <div class="sec-head" style="margin-top:1px">
+        <span class="sec-title">Dienos čekiai</span>
+        <span class="sec-funds" style="color:var(--green)">${fmtK(T.earned)} (${M.revs.length} čekių)</span>
+      </div>
+      ${M.revs.length?`
+        <div class="tbl-head tbl-rev"><span>Data</span><span>Vieta</span>
+          <span style="text-align:right">Grynai</span><span style="text-align:right">Kortele</span>
+          <span style="text-align:right">Viso</span><span></span></div>
+        ${revRows}`:'<div class="empty">Čekių nėra šį mėnesį.</div>'}
+      ${addRevForm}`;
+  }
+
+  const eobClass = T.eob>5000?'pos':T.eob>0?'warn':'neg';
+
+  return `<div class="card" id="co-${co.id}">
+    <div class="sec-head">
+      <span class="sec-title">${esc(co.label)}</span>
+      <span class="sec-proj" style="color:var(--text2);font-size:11px">${esc(co.name)}</span>
+      <span class="sec-funds">Esami: ${fmtK(T.funds)} · EOB: <span style="color:${T.eob>0?'var(--green)':'var(--red)'}">${fmtK(T.eob)}</span></span>
+    </div>
+    <div class="bal-grid">${balCells}</div>
+    ${projSection}
+    ${revSection}
+    <div class="sec-head" style="margin-top:1px">
+      <span class="sec-title">Neapmokėtos išlaidos</span>
+      <span class="sec-funds" style="color:var(--red)">${fmtK(expTotal)} (${M.exps.length} poz.)</span>
+    </div>
+    ${sortedExps.length
+      ? `<div class="tbl-head tbl-exp"><span>Pavadinimas</span>
+           <span style="text-align:right">Suma</span><span style="text-align:center">Terminas</span><span></span></div>
+         ${expRows}
+         <div class="tbl-total"><span class="tbl-total-label">Iš viso</span>
+           <span class="tbl-total-val">${fmt(expTotal)}</span></div>`
+      : '<div class="empty">Išlaidų nėra.</div>'}
+    ${addExpForm}
+  </div>`;
+}
+
+// ══════════════════════════════════════════
+// ACTIONS
+// ══════════════════════════════════════════
+function setView(v) { currentView=v; render(); }
+function prevMo() { mo--; if(mo<1){mo=12;yr--;} render(); }
+function nextMo() { mo++; if(mo>12){mo=1;yr++;} render(); }
+
+function addExp(cid) {
+  const name=document.getElementById('en-'+cid).value.trim();
+  let amt=parseFloat(document.getElementById('ea-'+cid).value)||0;
+  const due=parseInt(document.getElementById('ed-'+cid).value)||null;
+  const cat=document.getElementById('ec-'+cid).value;
+  if(!name){toast('Įvesk pavadinimą','err');return;}
+  if(amt===0){toast('Įvesk sumą','err');return;}
+  if(amt>0)amt=-amt;
+  DB.addExp(cid,yr,mo,{name,amt,due,cat,note:'',paid:false});
+  document.getElementById('en-'+cid).value='';
+  document.getElementById('ea-'+cid).value='';
+  document.getElementById('ed-'+cid).value='';
+  toast('Išlaida pridėta');
+  render();
+}
+
+function delExp(cid, id) {
+  DB.delExp(cid, yr, mo, id);
+  toast('✓ Pažymėta kaip apmokėta');
+  render();
+}
+function delExpGlobal(cid, id) { delExp(cid, id); }
+
+function addRev(cid) {
+  const date=document.getElementById('rd-'+cid).value;
+  const loc=document.getElementById('rl-'+cid).value;
+  const cash=parseFloat(document.getElementById('rc-'+cid).value)||0;
+  const card=parseFloat(document.getElementById('rk-'+cid).value)||0;
+  const fn=document.getElementById('rf-'+cid).value.trim();
+  if(!date){toast('Pasirink datą','err');return;}
+  if(cash+card===0){toast('Įvesk sumą','err');return;}
+  DB.addRev(cid,yr,mo,{date,loc,cash,card,total:cash+card,fn});
+  document.getElementById('rc-'+cid).value='';
+  document.getElementById('rk-'+cid).value='';
+  document.getElementById('rf-'+cid).value='';
+  toast(`Čekis: ${fmt(cash+card)}`,'ok');
+  render();
+}
+
+function delRev(cid, id) { DB.delRev(cid,yr,mo,id); render(); }
+
+function copyViewLink() {
+  const u=new URL(location.href); u.searchParams.set('mode','view');
+  navigator.clipboard.writeText(u.toString()).then(()=>toast('View link nukopijuotas!','ok'));
+}
+
+// ══════════════════════════════════════════
+// SHEETS MODAL
+// ══════════════════════════════════════════
+function openSheets() { document.getElementById('sheets-modal').style.display='flex'; }
+function closeSheets() { document.getElementById('sheets-modal').style.display='none'; }
+
+async function importSheets() {
+  let csv = document.getElementById('sheets-csv').value.trim();
+  const url = document.getElementById('sheets-url').value.trim();
+
+  if(!csv && url) {
+    toast('Bandoma krauti iš URL...');
+    try {
+      const r = await fetch(url, {mode:'cors'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      csv = await r.text();
+      toast('CSV gautas!','ok');
+    } catch(e) {
+      toast('Nepavyko krauti iš URL. Naudok CSV paste variantą.','err');
+      return;
+    }
+  }
+
+  if(!csv) { toast('Įklijuok CSV arba įvesk URL','err'); return; }
+
+  try {
+    const parsed = parseCSV(csv);
+    applyImportedData(parsed);
+    if(url) DB.setCfg('sheetsUrl', url);
+    const expCount = Object.values(parsed).reduce((s,v)=>s+v.exps.length,0);
+    toast(`Importuota! ${expCount} išlaidų iš 3 sekcijų.`,'ok');
+    closeSheets();
+    render();
+  } catch(e) {
+    toast('Parse klaida: '+e.message,'err');
+  }
+}
+
+// Make.com API
+window.importReceipt = function(json) {
+  try {
+    const r=typeof json==='string'?JSON.parse(json):json;
+    const rev=DB.addRev(r.companyId||'darts',r.year||yr,r.month||mo,
+      {date:r.date,loc:r.location,cash:parseFloat(r.cash)||0,
+       card:parseFloat(r.card)||0,total:parseFloat(r.total)||0,fn:r.fiscalNr||''});
+    toast(`Čekis importuotas: ${fmt(rev.total)}`,'ok');
+    render();
+    return {status:'ok'};
+  } catch(e) { toast(e.message,'err'); return {status:'error'}; }
+};
+
+// ══════════════════════════════════════════
+// SEED
+// ══════════════════════════════════════════
+function seed() {
+  // DARTS
+  DB.setBal('darts',2026,8,'eu',786); DB.setBal('darts',2026,8,'vln',4908);
+  DB.setBal('darts',2026,8,'plg',2269); DB.setBal('darts',2026,8,'vln_k',376);
+  DB.setBal('darts',2026,8,'plg_k',1390); DB.setProj('darts',2026,8,23800);
+  DB.addRev('darts',2026,8,{date:'2026-08-10',loc:'Palanga',cash:101.50,card:419.19,total:520.69,fn:'00011607'});
+  [
+    {name:'Nuoma Vilnius',cat:'rent',amt:-3050,due:15},{name:'Komunaliniai Vilnius',cat:'util',amt:-2000,due:31},
+    {name:'Ogmios internetas',cat:'net',amt:-100.43,due:31},{name:'Ogmios SKOLA liepa',cat:'net',amt:-100.43,due:31},
+    {name:'Nuoma Palanga',cat:'rent',amt:-3267,due:18},{name:'Komunaliniai Palanga',cat:'util',amt:-1304,due:31},
+    {name:'Maistas / Rockenroll',cat:'food',amt:-950,due:31},{name:'Algos SODRA + VMI',cat:'tax',amt:-3372,due:15},
+    {name:'Tiekėjai (planuota)',cat:'sup',amt:-4200,due:31},{name:'Tridens LT',cat:'sup',amt:-371.77,due:31},
+    {name:'Švyturys-Utenos (1)',cat:'sup',amt:-765.57,due:1},{name:'Švyturys-Utenos (2)',cat:'sup',amt:-1010.09,due:5},
+    {name:'Einamos',cat:'other',amt:-2000,due:31},{name:'Einamos SKOLA liepa',cat:'other',amt:-273,due:31},
+    {name:'PVM',cat:'tax',amt:-3500,due:25},{name:'Skolininkai (grafik.)',cat:'bank',amt:-1976,due:31},
+    {name:'Bankas + palūkanos',cat:'bank',amt:-1884,due:31},{name:'Marketingas Facebook',cat:'mkt',amt:-500,due:31},
+  ].forEach(e=>DB.addExp('darts',2026,8,{...e,note:''}));
+
+  // UPTOWN
+  DB.setBal('uptown',2026,8,'kasa',0); DB.setBal('uptown',2026,8,'main',1293);
+  DB.setProj('uptown',2026,8,8000);
+  [{name:'Nuoma Andrulionis',cat:'rent',amt:-500,due:10},{name:'DOKLAS komunaliniai',cat:'util',amt:-3200,due:20},
+   {name:'Algos SODRA GPM',cat:'tax',amt:-36.96,due:15},{name:'Pernod (dalis)',cat:'sup',amt:-500,due:31},
+   {name:'Pernod (likutis)',cat:'sup',amt:-363,due:31},{name:'Meta reklama',cat:'mkt',amt:-500,due:31},
+   {name:'Volfas Engelman',cat:'sup',amt:-492.39,due:31},{name:'Straujos sistemos',cat:'net',amt:-60.5,due:31},
+  ].forEach(e=>DB.addExp('uptown',2026,8,{...e,note:''}));
+
+  // RITMAS
+  DB.setBal('ritmas',2026,8,'kasa',139); DB.setBal('ritmas',2026,8,'pay',1817);
+  DB.setBal('ritmas',2026,8,'seb',4217); DB.setProj('ritmas',2026,8,11700);
+  [{name:'ILTE (nuoma)',cat:'rent',amt:-3380,due:25},{name:'Dėžutė UAB',cat:'sup',amt:-211.75,due:31},
+   {name:'Strauja POP mokestis',cat:'net',amt:-104.06,due:31},{name:'Google One / Claude',cat:'net',amt:-526,due:31},
+   {name:'Spaces ofiso nuoma',cat:'rent',amt:-277.82,due:18},{name:'Turto akademija (parkingas)',cat:'other',amt:-254.8,due:10},
+   {name:'DEZINFA',cat:'other',amt:-25,due:31},{name:'AGATA',cat:'other',amt:-36,due:31},
+   {name:'HORECA sprendimai',cat:'food',amt:-36,due:31},{name:'LATGA',cat:'other',amt:-36,due:31},
+   {name:'EMILSTA',cat:'other',amt:-23.75,due:31},{name:'SODRA GPM',cat:'tax',amt:-3152,due:15},
+   {name:'Tiekėjai (apyvarta)',cat:'sup',amt:-2400,due:31},{name:'Eurohorecana (×4)',cat:'sup',amt:-944.96,due:31},
+   {name:'Tridens LT',cat:'sup',amt:-371.81,due:20},{name:'Švyturys-Utenos',cat:'sup',amt:-355.5,due:20},
+   {name:'Eurohorecana rugpjūtis',cat:'sup',amt:-157.83,due:31},{name:'Mediaų pasaulis (Rytis)',cat:'mkt',amt:-700,due:31},
+   {name:'Facebook (vidutinis)',cat:'mkt',amt:-1200,due:31},{name:'Buhalterija Danius',cat:'other',amt:-726,due:31},
+   {name:'Tele 2',cat:'net',amt:-200,due:31},{name:'Auto nuoma Transorta',cat:'other',amt:-471.9,due:15},
+  ].forEach(e=>DB.addExp('ritmas',2026,8,{...e,note:''}));
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+(function init() {
+  const p = new URLSearchParams(location.search);
+  isView = p.get('mode')==='view';
+  if(isView) {
+    document.body.classList.add('view-mode');
+    document.getElementById('mode-chip').textContent='View only';
+    document.getElementById('mode-chip').classList.add('view');
+    document.getElementById('view-btn').style.display='none';
+  }
+  DB.load();
+  const M=DB.getM('darts',2026,8);
+  if(!M.exps.length&&!M.revs.length) seed();
+  // Check if sheets URL stored
+  const cfg=DB.cfg();
+  if(cfg.sheetsUrl) document.getElementById('sheets-dot').classList.remove('off');
+  render();
+})();
 </script>
-</body>
-</html>
