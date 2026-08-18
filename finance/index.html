@@ -200,7 +200,7 @@ body {
 
 .hero-kpis {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
   gap: 24px;
   margin-top: 26px;
   padding-top: 20px;
@@ -572,6 +572,8 @@ body {
 .inv-drop:hover, .inv-drop.drag { border-color: var(--royal); background: var(--blue-t); }
 .inv-nr { color: var(--royal); cursor: pointer; font-weight: 600; }
 .inv-nr:hover { text-decoration: underline; }
+.inv-type-btn { border: 1px solid var(--border2); background: var(--surf); color: var(--text2); }
+.inv-type-btn.on { background: var(--royal); border-color: var(--royal); color: #fff; }
 .form-field select {
   width: 100%;
   background: var(--bg);
@@ -718,16 +720,20 @@ body.view-mode input, body.view-mode select { pointer-events: none; opacity: .8;
 
       <div id="inv-preview" style="display:none;border-top:1px solid var(--border);padding-top:14px">
         <div class="microlabel" style="margin-bottom:10px;color:var(--green)">✓ Nuskaityta — patikrink ir pakoreguok</div>
+        <div style="display:flex;gap:6px;margin-bottom:14px">
+          <button type="button" class="btn btn-sm inv-type-btn on" id="ivt-in" onclick="setInvType('in')">📥 Gauta — mano išlaida</button>
+          <button type="button" class="btn btn-sm inv-type-btn" id="ivt-out" onclick="setInvType('out')">📤 Išrašyta — klientas skolingas</button>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div class="form-field"><label>Tiekėjas</label><input id="iv-sup" type="text"></div>
+          <div class="form-field"><label id="iv-sup-label">Tiekėjas</label><input id="iv-sup" type="text"></div>
           <div class="form-field"><label>Suma €</label><input id="iv-amt" type="number" step="0.01"></div>
           <div class="form-field"><label>Apmokėti iki</label><input id="iv-due" type="date"></div>
           <div class="form-field"><label>Sąskaitos Nr. (mokėjimo paskirtis)</label><input id="iv-nr" type="text"></div>
           <div class="form-field"><label>Tiekėjo IBAN (nebūtina)</label><input id="iv-iban" type="text" placeholder="LT..."></div>
           <div class="form-field"><label>Įmonė</label><select id="iv-co"></select></div>
-          <div class="form-field"><label>Kategorija</label><select id="iv-cat"></select></div>
+          <div class="form-field" id="iv-cat-field"><label>Kategorija</label><select id="iv-cat"></select></div>
         </div>
-        <label style="display:flex;align-items:center;gap:7px;margin-top:12px;font-size:12.5px;color:var(--text2);cursor:pointer">
+        <label style="display:flex;align-items:center;gap:7px;margin-top:12px;font-size:12.5px;color:var(--text2);cursor:pointer" id="iv-rec-field">
           <input type="checkbox" id="iv-rec" style="accent-color:var(--royal)"> 🔄 Pastovi sąskaita — automatiškai kartoti kiekvieną mėnesį
         </label>
       </div>
@@ -787,7 +793,7 @@ const DB = (() => {
     const bal={};
     co(id).accs.forEach(a=>bal[a.id]=0);
     co(id).cash.forEach(r=>bal[r.id]=0);
-    return {bal,proj:0,revs:[],exps:[],paid:[]};
+    return {bal,proj:0,revs:[],exps:[],paid:[],recv:[]};
   };
   const getM = (c,y,m) => {
     const k=key(c,y,m);
@@ -818,6 +824,11 @@ const DB = (() => {
     payExp: (c,y,m,id) => { const M=getM(c,y,m); const e=M.exps.find(x=>x.id===id); if(!e) return; M.exps=M.exps.filter(x=>x.id!==id); M.paid=M.paid||[]; M.paid.push({...e, paidAt:new Date().toISOString().slice(0,10)}); setM(c,y,m,M); },
     unpayExp: (c,y,m,id) => { const M=getM(c,y,m); const e=(M.paid||[]).find(x=>x.id===id); if(!e) return; M.paid=M.paid.filter(x=>x.id!==id); delete e.paidAt; M.exps.push(e); setM(c,y,m,M); },
     delPaid: (c,y,m,id) => { const M=getM(c,y,m); M.paid=(M.paid||[]).filter(x=>x.id!==id); setM(c,y,m,M); },
+    addRecv: (c,y,m,r) => { const M=getM(c,y,m); M.recv=M.recv||[]; r.id=Date.now()+Math.random(); M.recv.push(r); setM(c,y,m,M); return r; },
+    recvDone: (c,y,m,id) => { const M=getM(c,y,m); const r=(M.recv||[]).find(x=>x.id===id); if(r){ r.done=true; r.paidAt=new Date().toISOString().slice(0,10); setM(c,y,m,M); } },
+    recvUndo: (c,y,m,id) => { const M=getM(c,y,m); const r=(M.recv||[]).find(x=>x.id===id); if(r){ r.done=false; delete r.paidAt; setM(c,y,m,M); } },
+    delRecv: (c,y,m,id) => { const M=getM(c,y,m); M.recv=(M.recv||[]).filter(x=>x.id!==id); setM(c,y,m,M); },
+    allRecv: (y,m) => COMPANIES.flatMap(co=>(getM(co.id,y,m).recv||[]).filter(r=>!r.done).map(r=>({...r,_co:co.id,_coLabel:co.label}))),
     getTemplates: cid => (d.tmpl||{})[cid]||[],
     addTemplate: (cid,t) => { d.tmpl=d.tmpl||{}; d.tmpl[cid]=d.tmpl[cid]||[]; t.tmplId=Date.now()+Math.random(); d.tmpl[cid].push(t); save(); return t; },
     delTemplate: (cid,tmplId) => { d.tmpl=d.tmpl||{}; d.tmpl[cid]=(d.tmpl[cid]||[]).filter(t=>t.tmplId!==tmplId); save(); },
@@ -825,14 +836,16 @@ const DB = (() => {
       const M=getM(c,y,m);
       const funds=Object.values(M.bal).reduce((s,v)=>s+(v||0),0);
       const earned=M.revs.reduce((s,r)=>s+(r.total||0),0);
-      const remain=Math.max(0,M.proj-earned);
+      const recvOpen=(M.recv||[]).filter(r=>!r.done).reduce((s,r)=>s+(r.amt||0),0);
+      const remain=Math.max(0,M.proj-earned-recvOpen);
       const unpaid=M.exps.reduce((s,e)=>s+(e.amt||0),0);
-      return {funds,earned,remain,unpaid,eob:funds+remain+unpaid,revCnt:M.revs.length,expCnt:M.exps.length};
+      return {funds,earned,remain,recvOpen,unpaid,eob:funds+remain+recvOpen+unpaid,revCnt:M.revs.length,expCnt:M.exps.length};
     },
     allExp: (y,m) => COMPANIES.flatMap(co=>getM(co.id,y,m).exps.map(e=>({...e,_co:co.id,_coLabel:co.label}))),
     grandFunds: (y,m) => COMPANIES.reduce((s,co)=>s+Object.values(getM(co.id,y,m).bal).reduce((a,v)=>a+(v||0),0),0),
     grandEob: (y,m) => COMPANIES.reduce((s,co)=>s+DB.totals(co.id,y,m).eob,0),
     grandUnpaid: (y,m) => COMPANIES.reduce((s,co)=>s+DB.totals(co.id,y,m).unpaid,0),
+    grandRecv: (y,m) => COMPANIES.reduce((s,co)=>s+DB.totals(co.id,y,m).recvOpen,0),
   };
 })();
 
@@ -859,6 +872,17 @@ const urg = (due, paid) => {
   if(diff<=3) return 'hi';
   if(diff<=7) return 'lo';
   return '';
+};
+const dueInfo = d => {
+  if(!d) return {txt:'terminas nenurodytas', cls:''};
+  const today=new Date(); today.setHours(0,0,0,0);
+  const dd=new Date(d);
+  const diff=Math.round((dd-today)/86400000);
+  if(isNaN(diff)) return {txt:'iki '+d, cls:''};
+  if(diff<0)  return {txt:`vėluoja ${-diff} d.`, cls:'ov'};
+  if(diff===0) return {txt:'šiandien!', cls:'ov'};
+  if(diff<=3) return {txt:`liko ${diff} d.`, cls:'hi'};
+  return {txt:`liko ${diff} d.`, cls:''};
 };
 const toast = (msg,type='') => {
   const el=document.createElement('div');
@@ -999,6 +1023,7 @@ function renderGrand() {
   const unpaid = DB.grandUnpaid(yr,mo);
   const totalEarned = COMPANIES.reduce((s,co)=>s+DB.totals(co.id,yr,mo).earned,0);
   const totalProj = COMPANIES.reduce((s,co)=>s+DB.getM(co.id,yr,mo).proj,0);
+  const recvT = DB.grandRecv(yr,mo);
 
   const eobClass = eob>5000?'g':eob>0?'a':'r';
   const statusWord = eob>5000?'Saugus':eob>0?'Atsargiai':'Kritiškai';
@@ -1015,6 +1040,7 @@ function renderGrand() {
         <div class="hkpi"><label>Esami pinigai</label><b class="g">${fmtK(funds)}</b></div>
         <div class="hkpi"><label>Uždirbta šį mėn.</label><b class="g">${fmtK(totalEarned)}</b></div>
         <div class="hkpi"><label>Mėnesio projekcija</label><b class="w">${fmtK(totalProj)}</b></div>
+        ${recvT>0?`<div class="hkpi"><label>Klientų skolos</label><b class="g">+${fmtK(recvT)}</b></div>`:''}
         <div class="hkpi"><label>Neapmokėta</label><b class="r">${fmtK(unpaid)}</b></div>
       </div>
     </div>
@@ -1025,6 +1051,8 @@ function renderMain() {
   const sections = [];
 
   if(currentView==='all') {
+    // Klientų skolos — labai matomoje vietoje, virš išlaidų
+    sections.push(renderAllRecv());
     // All-tasks aggregate view
     sections.push(renderAllTasks());
     // Then each company mini-summary
@@ -1035,6 +1063,40 @@ function renderMain() {
   }
 
   document.getElementById('main').innerHTML = sections.join('');
+}
+
+function renderAllRecv() {
+  const rs = DB.allRecv(yr, mo).sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+  if(!rs.length) return '';
+  const total = rs.reduce((s,r)=>s+(r.amt||0),0);
+  const rows = rs.map(r=>{
+    const di = dueInfo(r.dueDate);
+    return `<div class="tbl-row tbl-exp${di.cls==='ov'?' urg-ov':di.cls==='hi'?' urg-hi':''}">
+      <div class="cell cell-name">${esc(r.client)}
+        <div class="cell-note">
+          <span class="tbl-comp">${esc(r._coLabel)}</span>
+          ${r.invNr?` · <span class="inv-nr" onclick="event.stopPropagation();copyTxt('${esc(r.invNr)}')" title="Kopijuoti sąskaitos nr.">📄 ${esc(r.invNr)}</span>`:''}
+          · <span class="${di.cls==='ov'?'cell-due ov':di.cls==='hi'?'cell-due hi':''}" style="font-size:10.5px">${di.txt}</span>
+        </div>
+      </div>
+      <div class="cell cell-amt pos">+${fmt(r.amt)}</div>
+      <div class="cell cell-due${di.cls?' '+di.cls:''}">${r.dueDate?esc(r.dueDate):'—'}</div>
+      <div class="cell" style="display:flex;gap:1px;justify-content:flex-end">
+        <button class="del-btn admin-only" onclick="recvGot('${r._co}',${r.id})" title="Klientas sumokėjo">✓</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="card">
+    <div class="alltasks-head" style="background:linear-gradient(158deg,#0E7A4E,#0A5C3A)">
+      <span class="alltasks-title">📤 Klientų skolos — laukiama apmokėjimų</span>
+      <span class="alltasks-count">${rs.length} sąskaitos</span>
+      <span class="alltasks-sum" style="color:#8FE7BC">+${fmt(total)}</span>
+    </div>
+    <div class="tbl-head tbl-exp"><span>Klientas</span>
+      <span style="text-align:right">Suma</span><span style="text-align:center">Iki kada</span><span></span></div>
+    ${rows}
+  </div>`;
 }
 
 function renderAllTasks() {
@@ -1142,6 +1204,69 @@ function renderCompany(co, full=false) {
       </div>
       <div class="prog-track"><div class="prog-fill" style="width:${Math.min(100,supPct)}%;background:${over?'var(--red)':'var(--green)'}"></div></div>
     </div>`;
+  }
+
+  // Klientų skolos (išrašytos sąskaitos)
+  const recvArr = M.recv || [];
+  const recvOpen = recvArr.filter(r=>!r.done);
+  const recvDoneArr = recvArr.filter(r=>r.done);
+  const recvSum = recvOpen.reduce((s,r)=>s+(r.amt||0),0);
+  let recvSection = '';
+  if(recvOpen.length || recvDoneArr.length || (full && !isView)) {
+    const recvRows = [...recvOpen].sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999')).map(r=>{
+      const di = dueInfo(r.dueDate);
+      return `<div class="tbl-row tbl-exp${di.cls==='ov'?' urg-ov':di.cls==='hi'?' urg-hi':''}">
+        <div class="cell cell-name">${esc(r.client)}
+          <div class="cell-note">${r.invNr?`<span class="inv-nr" onclick="event.stopPropagation();copyTxt('${esc(r.invNr)}')" title="Kopijuoti sąskaitos nr.">📄 ${esc(r.invNr)}</span> · `:''}<span class="${di.cls==='ov'?'cell-due ov':di.cls==='hi'?'cell-due hi':''}" style="font-size:10.5px">${di.txt}</span></div>
+        </div>
+        <div class="cell cell-amt pos">+${fmt(r.amt)}</div>
+        <div class="cell cell-due${di.cls?' '+di.cls:''}">${r.dueDate?esc(r.dueDate):'—'}</div>
+        <div class="cell" style="display:flex;gap:1px;justify-content:flex-end">
+          <button class="del-btn admin-only" onclick="recvGot('${co.id}',${r.id})" title="Klientas sumokėjo">✓</button>
+          <button class="del-btn admin-only" onclick="delRecvRow('${co.id}',${r.id})" title="Ištrinti">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    const recvDoneRows = recvDoneArr.length ? `
+      <details class="paid-box">
+        <summary class="paid-summary">
+          <span class="sec-title" style="color:var(--green)">✓ Klientai atsiskaitė</span>
+          <span class="sec-funds" style="color:var(--green)">+${fmtK(recvDoneArr.reduce((s,r)=>s+(r.amt||0),0))} (${recvDoneArr.length} poz.)</span>
+        </summary>
+        ${recvDoneArr.map(r=>`<div class="tbl-row tbl-paid">
+          <div class="cell cell-name" style="color:var(--text2)">${esc(r.client)}
+            <div class="cell-note">${r.invNr?`📄 ${esc(r.invNr)} · `:''}gauta ${esc(r.paidAt||'—')}</div>
+          </div>
+          <div class="cell cell-amt" style="color:var(--green)">+${fmt(r.amt)}</div>
+          <div class="cell" style="display:flex;gap:2px;justify-content:flex-end">
+            <button class="del-btn admin-only" onclick="recvUndoUI('${co.id}',${r.id})" title="Grąžinti į skolas">↩</button>
+            <button class="del-btn admin-only" onclick="delRecvRow('${co.id}',${r.id})" title="Ištrinti visam">✕</button>
+          </div>
+        </div>`).join('')}
+      </details>` : '';
+
+    const addRecvForm = (full && !isView) ? `
+      <div class="add-form admin-only">
+        <div class="ff" style="flex:2"><label>Klientas</label>
+          <input type="text" id="kc-${co.id}" placeholder="pvz. UAB Klientas"></div>
+        <div class="ff"><label>Suma €</label>
+          <input type="number" step="0.01" id="ka-${co.id}" placeholder="6000"></div>
+        <div class="ff" style="max-width:150px"><label>Apmokėti iki</label>
+          <input type="date" id="kd-${co.id}"></div>
+        <div class="ff"><label>Sąskaitos Nr.</label>
+          <input type="text" id="kn-${co.id}" placeholder="RIT30"></div>
+        <button class="btn btn-blue btn-sm" onclick="addRecvManual('${co.id}')">+ Skola</button>
+      </div>` : '';
+
+    recvSection = `
+      <div class="sec-head" style="background:var(--green-t)">
+        <span class="sec-title" style="color:var(--green)">📤 Klientų skolos — išrašytos sąskaitos</span>
+        <span class="sec-funds" style="color:var(--green)">+${fmtK(recvSum)}${recvOpen.length?` (${recvOpen.length} poz.)`:''}</span>
+      </div>
+      ${recvOpen.length ? recvRows : '<div class="empty">Neapmokėtų klientų sąskaitų nėra.</div>'}
+      ${recvDoneRows}
+      ${addRecvForm}`;
   }
 
   // Expenses
@@ -1282,6 +1407,7 @@ function renderCompany(co, full=false) {
     <div class="bal-grid">${balCells}</div>
     ${projSection}
     ${budgetRow}
+    ${recvSection}
     ${revSection}
     <div class="sec-head" style="margin-top:1px">
       <span class="sec-title">Neapmokėtos išlaidos</span>
@@ -1361,6 +1487,22 @@ function delExp(cid, id) {
 function delExpGlobal(cid, id) { delExp(cid, id); }
 function unpay(cid, id) { DB.unpayExp(cid, yr, mo, id); toast('↩ Grąžinta į neapmokėtas'); render(); }
 function delPaidRow(cid, id) { DB.delPaid(cid, yr, mo, id); toast('Ištrinta visam'); render(); }
+
+function recvGot(cid, id) { DB.recvDone(cid, yr, mo, id); toast('💰 Gauta! Nepamiršk atnaujinti sąskaitos likutį','ok'); render(); }
+function recvUndoUI(cid, id) { DB.recvUndo(cid, yr, mo, id); render(); }
+function delRecvRow(cid, id) { DB.delRecv(cid, yr, mo, id); toast('Ištrinta'); render(); }
+
+function addRecvManual(cid) {
+  const client = document.getElementById('kc-'+cid).value.trim();
+  const amt = Math.abs(parseFloat(document.getElementById('ka-'+cid).value)||0);
+  const dueDate = document.getElementById('kd-'+cid).value;
+  const invNr = document.getElementById('kn-'+cid).value.trim();
+  if(!client) { toast('Įvesk klientą','err'); return; }
+  if(!amt) { toast('Įvesk sumą','err'); return; }
+  DB.addRecv(cid, yr, mo, {client, amt, dueDate, invNr, note:''});
+  toast(`📤 ${client} skolingas ${fmt(amt)}`,'ok');
+  render();
+}
 
 function addRev(cid) {
   const date=document.getElementById('rd-'+cid).value;
@@ -1472,18 +1614,35 @@ function parseInvoiceText(text) {
   const ibanM = t.replace(/\s/g,'').match(/\bLT\d{18}\b/) || t.match(/\bLT\d{2}(?:\s?\d{4}){4}\b/);
   if(ibanM) out.iban = ibanM[0].replace(/\s/g,'');
 
-  // Tiekėjas — pirma pagal žinomus, tada pagal UAB/AB pavadinimą (praleidžiant savas įmones)
-  for(const s of KNOWN_SUPPLIERS) { if(low.includes(s.k)) { out.supplier=s.n; out.cat=s.cat; break; } }
-  if(!out.supplier) {
-    const cands = t.match(/\b(?:UAB|AB|MB|VšĮ|IĮ)\s+["“”]?[A-ZĄČĘĖĮŠŲŪŽ][^\n",“”]{2,45}/g) || [];
-    const cand = cands.find(x => !OWN_KEYS.some(o => x.toLowerCase().includes(o)));
-    if(cand) out.supplier = cand.replace(/["“”]/g,'').trim();
-  }
+  // Kandidatai: visos UAB/AB/MB, išskyrus savas įmones
+  const cands = t.match(/\b(?:UAB|AB|MB|VšĮ|IĮ)\s+["“”]?[A-ZĄČĘĖĮŠŲŪŽ][^\n",“”]{2,45}/g) || [];
+  const otherParty = cands.find(x => !OWN_KEYS.some(o => x.toLowerCase().includes(o)));
+  let known = null;
+  for(const s of KNOWN_SUPPLIERS) { if(low.includes(s.k)) { known=s; break; } }
 
-  // Pirkėjas → kuri mūsų įmonė
-  if(low.includes('smiginis')) out.companyId='darts';
-  else if(low.includes('naujamies')) out.companyId='uptown';
-  else if(low.includes('ritmo rengini')) out.companyId='ritmas';
+  // Sava įmonė dokumente + kryptis: jei sava įmonė yra PARDAVĖJAS — sąskaita išrašyta klientui
+  out.type = 'in';
+  out.isAdvance = /avansin/i.test(low);
+  const OWN_MAP = [['smiginis','darts'],['naujamies','uptown'],['ritmo rengini','ritmas']];
+  const pIdx = low.search(/pardav|seller/);
+  for(const [k,cid] of OWN_MAP) {
+    const oIdx = low.indexOf(k);
+    if(oIdx>=0) {
+      out.companyId = cid;
+      if(pIdx>=0 && Math.abs(oIdx-pIdx)<250) out.type='out';
+    }
+  }
+  // Serija RIT → Ritmo išrašyta sąskaita
+  if(out.type==='in' && /\bRIT\s?\d{1,5}\b/.test(t)) { out.type='out'; if(!out.companyId) out.companyId='ritmas'; }
+
+  if(out.type==='out') {
+    // Kita šalis = klientas (skolininkas)
+    out.supplier = otherParty ? otherParty.replace(/["“”]/g,'').trim() : (known?known.n:'');
+    out.cat = 'other';
+  } else {
+    out.supplier = known ? known.n : (otherParty ? otherParty.replace(/["“”]/g,'').trim() : '');
+    if(known) out.cat = known.cat;
+  }
 
   // Sąskaitos numeris — "serija AA Nr. 903969466" arba vientisas AA903969466 / TDN140086382
   let m = t.match(/serija\s*([A-Z]{1,4})\s*Nr\.?\s*:?\s*(\d{4,})/i);
@@ -1517,10 +1676,21 @@ function openInv() {
   document.getElementById('iv-cat').value = 'sup';
   ['inv-text','iv-sup','iv-amt','iv-due','iv-nr','iv-iban'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('iv-rec').checked = false;
+  setInvType('in');
   document.getElementById('inv-preview').style.display = 'none';
   document.getElementById('inv-modal').style.display = 'flex';
 }
 function closeInv() { document.getElementById('inv-modal').style.display='none'; }
+
+let invType = 'in';
+function setInvType(t) {
+  invType = t;
+  document.getElementById('ivt-in').classList.toggle('on', t==='in');
+  document.getElementById('ivt-out').classList.toggle('on', t==='out');
+  document.getElementById('iv-sup-label').textContent = t==='out' ? 'Klientas (skolininkas)' : 'Tiekėjas';
+  document.getElementById('iv-cat-field').style.display = t==='out' ? 'none' : '';
+  document.getElementById('iv-rec-field').style.display = t==='out' ? 'none' : '';
+}
 
 function showInvPreview(p) {
   document.getElementById('iv-sup').value = p.supplier || '';
@@ -1530,6 +1700,7 @@ function showInvPreview(p) {
   document.getElementById('iv-iban').value = p.iban || '';
   if(p.companyId) document.getElementById('iv-co').value = p.companyId;
   if(p.cat) document.getElementById('iv-cat').value = p.cat;
+  setInvType(p.type || 'in');
   document.getElementById('inv-preview').style.display = 'block';
 }
 
@@ -1586,8 +1757,18 @@ function addInvoice() {
   const iban = document.getElementById('iv-iban').value.trim();
   const cid = document.getElementById('iv-co').value;
   const cat = document.getElementById('iv-cat').value;
-  if(!sup) { toast('Įvesk tiekėją','err'); return; }
+  if(!sup) { toast(invType==='out'?'Įvesk klientą':'Įvesk tiekėją','err'); return; }
   if(!amt) { toast('Įvesk sumą','err'); return; }
+
+  if(invType === 'out') {
+    // Mano išrašyta sąskaita → kliento skola, mažina "liko uždirbti"
+    DB.addRecv(cid, yr, mo, {client:sup, amt:Math.abs(amt), dueDate, invNr:nr, note:''});
+    toast(`📤 ${sup} skolingas ${fmt(Math.abs(amt))}`,'ok');
+    closeInv();
+    render();
+    return;
+  }
+
   if(amt>0) amt = -amt;
   const due = dueDate ? parseInt(dueDate.slice(8,10)) : null;
   const expObj = {name:sup, amt, due, cat, note:'', invNr:nr, iban, dueDate};
