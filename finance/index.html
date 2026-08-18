@@ -519,6 +519,33 @@ body {
 .step-text { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
 .step-text strong { color: var(--navy); }
 
+/* ══ SĄSKAITOS ĮKĖLIMAS ══ */
+.inv-drop {
+  border: 1.5px dashed var(--border2);
+  border-radius: var(--r);
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 13px;
+  transition: all .15s;
+  display: flex; flex-direction: column; gap: 4px; align-items: center;
+}
+.inv-drop:hover, .inv-drop.drag { border-color: var(--royal); background: var(--blue-t); }
+.inv-nr { color: var(--royal); cursor: pointer; font-weight: 600; }
+.inv-nr:hover { text-decoration: underline; }
+.form-field select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--rs);
+  color: var(--text);
+  padding: 8px 11px;
+  font-size: 13px;
+  font-family: var(--sans);
+}
+.form-field select:focus { outline: none; border-color: var(--royal); }
+
 /* ══ TOAST ══ */
 .toast {
   position: fixed; bottom: 20px; right: 20px;
@@ -578,7 +605,8 @@ body.view-mode input, body.view-mode select { pointer-events: none; opacity: .8;
   <button class="mbtn" onclick="prevMo()">‹</button>
   <span class="mlabel" id="mlabel"></span>
   <button class="mbtn" onclick="nextMo()">›</button>
-  <button class="sheets-btn admin-only" onclick="openSheets()" id="sheets-btn">
+  <button class="sheets-btn admin-only" onclick="openInv()" style="margin-left:auto">📄 Įkelti sąskaitą</button>
+  <button class="sheets-btn admin-only" onclick="openSheets()" id="sheets-btn" style="margin-left:0">
     <div class="sheets-dot off" id="sheets-dot"></div>
     Google Sheets
   </button>
@@ -622,6 +650,53 @@ body.view-mode input, body.view-mode select { pointer-events: none; opacity: .8;
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeSheets()">Atšaukti</button>
       <button class="btn btn-blue" onclick="importSheets()">⬇ Importuoti</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sąskaitos įkėlimo modalas -->
+<div class="overlay" id="inv-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Įkelti sąskaitą</h3>
+      <button class="del-btn" onclick="closeInv()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="inv-drop" id="inv-drop"
+           onclick="document.getElementById('inv-file').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="event.preventDefault();this.classList.remove('drag');handleInvFile(event.dataTransfer.files[0])">
+        <div style="font-size:24px">📄</div>
+        <div><strong>Įmesk PDF sąskaitą čia</strong> arba spausk pasirinkti failą</div>
+        <div style="font-size:11px;color:var(--text3)">Nuskaitys tiekėją, sumą, terminą ir sąskaitos numerį</div>
+      </div>
+      <input type="file" id="inv-file" accept=".pdf,application/pdf" style="display:none" onchange="handleInvFile(this.files[0])">
+
+      <div class="form-field">
+        <label>Arba įklijuok sąskaitos tekstą (atsidaryk PDF → Ctrl+A → Ctrl+C)</label>
+        <textarea id="inv-text" placeholder="Įklijuok sąskaitos tekstą čia..." oninput="parseInvInput()"></textarea>
+      </div>
+
+      <div id="inv-preview" style="display:none;border-top:1px solid var(--border);padding-top:14px">
+        <div class="microlabel" style="margin-bottom:10px;color:var(--green)">✓ Nuskaityta — patikrink ir pakoreguok</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-field"><label>Tiekėjas</label><input id="iv-sup" type="text"></div>
+          <div class="form-field"><label>Suma €</label><input id="iv-amt" type="number" step="0.01"></div>
+          <div class="form-field"><label>Apmokėti iki</label><input id="iv-due" type="date"></div>
+          <div class="form-field"><label>Sąskaitos Nr. (mokėjimo paskirtis)</label><input id="iv-nr" type="text"></div>
+          <div class="form-field"><label>Įmonė</label><select id="iv-co"></select></div>
+          <div class="form-field"><label>Kategorija</label><select id="iv-cat"></select></div>
+        </div>
+      </div>
+
+      <div class="info-box" style="font-size:11px">
+        <strong>AI agentui / Make.com:</strong> <code>window.importInvoice({companyId, supplier, amount, dueDate, invoiceNr})</code> — sąskaitos iš el. pašto gali kristi automatiškai.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeInv()">Atšaukti</button>
+      <button class="btn btn-blue" onclick="addInvoice()">＋ Pridėti į išlaidas</button>
     </div>
   </div>
 </div>
@@ -935,6 +1010,7 @@ function renderAllTasks() {
           <span class="tbl-comp">${esc(e._coLabel)}</span>
           ${(e.isTemplate||e.isFromTemplate)?' · <span style="color:var(--blue);font-size:10px">🔄 pastovi</span>':''}
           ${cat?' · '+cat.i+' '+cat.l:''}
+          ${e.invNr?` · <span class="inv-nr" onclick="event.stopPropagation();copyTxt('${esc(e.invNr)}')" title="Kopijuoti mokėjimo paskirčiai">📄 ${esc(e.invNr)}</span>`:''}
           ${urgLabel?` · <span style="color:var(--red);font-weight:600">${urgLabel}</span>`:''}
         </div>
       </div>
@@ -1004,7 +1080,7 @@ function renderCompany(co, full=false) {
     return `<div class="tbl-row tbl-exp${urgClass?' urg-'+urgClass:''}">
       <div class="cell cell-name">
         ${esc(e.name.length>55?e.name.slice(0,55)+'…':e.name)}
-        <div class="cell-note">${(e.isTemplate||e.isFromTemplate)?'<span style="color:var(--blue);font-size:10px">🔄</span> ':''}${cat?cat.i+' '+cat.l:''}${e.note?' · '+esc(e.note.slice(0,40)):''}</div>
+        <div class="cell-note">${(e.isTemplate||e.isFromTemplate)?'<span style="color:var(--blue);font-size:10px">🔄</span> ':''}${cat?cat.i+' '+cat.l:''}${e.invNr?` · <span class="inv-nr" onclick="event.stopPropagation();copyTxt('${esc(e.invNr)}')" title="Kopijuoti mokėjimo paskirčiai">📄 ${esc(e.invNr)}</span>`:''}${e.note?' · '+esc(e.note.slice(0,40)):''}</div>
       </div>
       <div class="cell cell-amt neg">${fmt(e.amt)}</div>
       <div class="cell cell-due${urgClass==='ov'?' ov':urgClass==='hi'?' hi':''}">
@@ -1235,6 +1311,179 @@ window.importReceipt = function(json) {
     render();
     return {status:'ok'};
   } catch(e) { toast(e.message,'err'); return {status:'error'}; }
+};
+
+// ══════════════════════════════════════════
+// SĄSKAITŲ ĮKĖLIMAS — PDF / tekstas / AI API
+// ══════════════════════════════════════════
+const KNOWN_SUPPLIERS = [
+  {k:'švyturys', n:'Švyturys-Utenos alus', cat:'sup'},
+  {k:'svyturys', n:'Švyturys-Utenos alus', cat:'sup'},
+  {k:'utenos alus', n:'Švyturys-Utenos alus', cat:'sup'},
+  {k:'tridens', n:'Tridens LT', cat:'sup'},
+  {k:'pernod', n:'Pernod Ricard', cat:'sup'},
+  {k:'volfas', n:'Volfas Engelman', cat:'sup'},
+  {k:'eurohorecana', n:'Eurohorecana', cat:'sup'},
+  {k:'coca-cola', n:'Coca-Cola', cat:'sup'},
+  {k:'ogmios', n:'Ogmios', cat:'net'},
+  {k:'tele2', n:'Tele2', cat:'net'},
+  {k:'strauja', n:'Strauja', cat:'net'},
+  {k:'dezinfa', n:'DEZINFA', cat:'other'},
+  {k:'horeca sprendimai', n:'HORECA sprendimai', cat:'food'},
+];
+const OWN_KEYS = ['smiginis', 'naujamies', 'ritmo rengini'];
+
+const parseNum = s => {
+  s = String(s).replace(/[\s ]/g,'');
+  if(s.includes(',') && s.includes('.')) s = s.replace(/\./g,'').replace(',','.');
+  else s = s.replace(',','.');
+  return parseFloat(s);
+};
+
+function parseInvoiceText(text) {
+  const t = text.replace(/ /g,' ');
+  const low = t.toLowerCase();
+  const out = {supplier:'', amt:null, dueDate:'', invNr:'', companyId:'', cat:'sup'};
+
+  // Tiekėjas — pirma pagal žinomus, tada pagal UAB/AB pavadinimą (praleidžiant savas įmones)
+  for(const s of KNOWN_SUPPLIERS) { if(low.includes(s.k)) { out.supplier=s.n; out.cat=s.cat; break; } }
+  if(!out.supplier) {
+    const cands = t.match(/\b(?:UAB|AB|MB|VšĮ|IĮ)\s+["“”]?[A-ZĄČĘĖĮŠŲŪŽ][^\n",“”]{2,45}/g) || [];
+    const cand = cands.find(x => !OWN_KEYS.some(o => x.toLowerCase().includes(o)));
+    if(cand) out.supplier = cand.replace(/["“”]/g,'').trim();
+  }
+
+  // Pirkėjas → kuri mūsų įmonė
+  if(low.includes('smiginis')) out.companyId='darts';
+  else if(low.includes('naujamies')) out.companyId='uptown';
+  else if(low.includes('ritmo rengini')) out.companyId='ritmas';
+
+  // Sąskaitos numeris — "serija AA Nr. 903969466" arba vientisas AA903969466 / TDN140086382
+  let m = t.match(/serija\s*([A-Z]{1,4})\s*Nr\.?\s*:?\s*(\d{4,})/i);
+  if(m) out.invNr = m[1].toUpperCase()+m[2];
+  if(!out.invNr) { m = t.match(/\b([A-Z]{2,4}\d{6,12})\b/); if(m) out.invNr = m[1]; }
+  if(!out.invNr) { m = t.match(/Nr\.?\s*:?\s*([A-Z0-9][A-Z0-9-]{4,19})/); if(m) out.invNr = m[1]; }
+
+  // Apmokėjimo terminas
+  m = low.match(/(?:apmokėti\s+iki|apmoketi\s+iki|mokėjimo\s+terminas|mokejimo\s+terminas|apmokėjimo\s+terminas|apmokejimo\s+terminas)\s*:?\s*(\d{4}[-.\/]\d{2}[-.\/]\d{2})/);
+  if(m) out.dueDate = m[1].replace(/[.\/]/g,'-');
+  if(!out.dueDate) {
+    // vėliausia data dokumente dažniausiai yra terminas
+    const dates = [...t.matchAll(/\b(20\d{2}[-.\/]\d{2}[-.\/]\d{2})\b/g)].map(x=>x[1].replace(/[.\/]/g,'-')).sort();
+    if(dates.length) out.dueDate = dates[dates.length-1];
+  }
+
+  // Suma — pirma pagal etiketę, tada didžiausias skaičius su centais
+  m = low.match(/(?:mokėtina\s+suma|moketina\s+suma|iš\s+viso\s+su\s+pvm|is\s+viso\s+su\s+pvm|suma\s+su\s+pvm|bendra\s+suma|viso\s+mokėti|viso\s+moketi|iš\s+viso|is\s+viso)[^0-9-]{0,40}(\d{1,3}(?:[ . ]\d{3})*[.,]\d{2})/);
+  if(m) out.amt = parseNum(m[1]);
+  if(out.amt==null || isNaN(out.amt)) {
+    const nums = [...t.matchAll(/\b(\d{1,3}(?:[ . ]\d{3})*[.,]\d{2})\b/g)].map(x=>parseNum(x[1])).filter(v=>v>0 && v<100000);
+    if(nums.length) out.amt = Math.max(...nums);
+  }
+
+  return out;
+}
+
+function openInv() {
+  document.getElementById('iv-co').innerHTML = COMPANIES.map(c=>`<option value="${c.id}">${c.label} — ${esc(c.name)}</option>`).join('');
+  document.getElementById('iv-cat').innerHTML = CATS.map(c=>`<option value="${c.id}">${c.i} ${c.l}</option>`).join('');
+  document.getElementById('iv-cat').value = 'sup';
+  ['inv-text','iv-sup','iv-amt','iv-due','iv-nr'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('inv-preview').style.display = 'none';
+  document.getElementById('inv-modal').style.display = 'flex';
+}
+function closeInv() { document.getElementById('inv-modal').style.display='none'; }
+
+function showInvPreview(p) {
+  document.getElementById('iv-sup').value = p.supplier || '';
+  document.getElementById('iv-amt').value = p.amt!=null && !isNaN(p.amt) ? Math.abs(p.amt) : '';
+  document.getElementById('iv-due').value = p.dueDate || '';
+  document.getElementById('iv-nr').value = p.invNr || '';
+  if(p.companyId) document.getElementById('iv-co').value = p.companyId;
+  if(p.cat) document.getElementById('iv-cat').value = p.cat;
+  document.getElementById('inv-preview').style.display = 'block';
+}
+
+function parseInvInput() {
+  const txt = document.getElementById('inv-text').value.trim();
+  if(txt.length > 60) showInvPreview(parseInvoiceText(txt));
+}
+
+function loadPdfJs() {
+  if(window.pdfjsLib) return Promise.resolve();
+  return new Promise((res,rej)=>{
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = () => {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      res();
+    };
+    s.onerror = () => rej(new Error('CDN nepasiekiamas'));
+    document.head.appendChild(s);
+  });
+}
+
+async function extractPdfText(file) {
+  await loadPdfJs();
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+  let out = '';
+  for(let i=1; i<=Math.min(pdf.numPages,5); i++) {
+    const page = await pdf.getPage(i);
+    const tc = await page.getTextContent();
+    out += tc.items.map(it=>it.str).join(' ') + '\n';
+  }
+  return out;
+}
+
+async function handleInvFile(file) {
+  if(!file) return;
+  toast('Skaitomas PDF…');
+  try {
+    const text = await extractPdfText(file);
+    document.getElementById('inv-text').value = text.slice(0,20000);
+    showInvPreview(parseInvoiceText(text));
+    toast('Sąskaita nuskaityta — patikrink laukus','ok');
+  } catch(e) {
+    toast('PDF nuskaityti nepavyko čia — įklijuok tekstą į laukelį','err');
+  }
+}
+
+function addInvoice() {
+  const sup = document.getElementById('iv-sup').value.trim();
+  let amt = parseFloat(document.getElementById('iv-amt').value) || 0;
+  const dueDate = document.getElementById('iv-due').value;
+  const nr = document.getElementById('iv-nr').value.trim();
+  const cid = document.getElementById('iv-co').value;
+  const cat = document.getElementById('iv-cat').value;
+  if(!sup) { toast('Įvesk tiekėją','err'); return; }
+  if(!amt) { toast('Įvesk sumą','err'); return; }
+  if(amt>0) amt = -amt;
+  const due = dueDate ? parseInt(dueDate.slice(8,10)) : null;
+  DB.addExp(cid, yr, mo, {name:sup, amt, due, cat, note:'', invNr:nr, dueDate});
+  toast(`📄 ${sup} ${fmt(amt)} pridėta`,'ok');
+  closeInv();
+  render();
+}
+
+function copyTxt(txt) {
+  navigator.clipboard.writeText(txt).then(()=>toast('Nukopijuota: '+txt,'ok'));
+}
+
+// AI agentui / Make.com — sąskaita iš el. pašto ar kitur
+window.importInvoice = function(json) {
+  try {
+    const r = typeof json==='string' ? JSON.parse(json) : json;
+    let amt = parseFloat(r.amount)||0;
+    if(amt>0) amt = -amt;
+    const dueDate = r.dueDate || '';
+    const due = dueDate ? parseInt(String(dueDate).slice(8,10)) : null;
+    DB.addExp(r.companyId||'darts', r.year||yr, r.month||mo,
+      {name:r.supplier||'Sąskaita', amt, due, cat:r.category||'sup', note:r.note||'', invNr:r.invoiceNr||'', dueDate});
+    toast(`📄 Sąskaita: ${r.supplier||''} ${fmt(amt)}`,'ok');
+    render();
+    return {status:'ok'};
+  } catch(e) { return {status:'error', message:e.message}; }
 };
 
 // ══════════════════════════════════════════
