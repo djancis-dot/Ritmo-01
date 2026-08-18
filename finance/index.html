@@ -519,6 +519,23 @@ body {
 .step-text { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
 .step-text strong { color: var(--navy); }
 
+/* ══ APMOKĖJIMŲ ARCHYVAS ══ */
+.paid-box { border-top: 1px solid var(--border); background: var(--surf); }
+.paid-box summary { list-style: none; }
+.paid-box summary::-webkit-details-marker { display: none; }
+.paid-summary {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 24px; height: 40px;
+  cursor: pointer; user-select: none;
+  background: var(--green-t);
+  border-bottom: 1px solid var(--border);
+  transition: background .12s;
+}
+.paid-summary:hover { background: #DFF0E8; }
+.paid-hint { font-size: 10px; color: var(--text3); letter-spacing: .04em; }
+.paid-box[open] .paid-hint { display: none; }
+.tbl-paid { grid-template-columns: 1fr 115px 76px; }
+
 /* ══ SĄSKAITOS ĮKĖLIMAS ══ */
 .inv-drop {
   border: 1.5px dashed var(--border2);
@@ -685,6 +702,7 @@ body.view-mode input, body.view-mode select { pointer-events: none; opacity: .8;
           <div class="form-field"><label>Suma €</label><input id="iv-amt" type="number" step="0.01"></div>
           <div class="form-field"><label>Apmokėti iki</label><input id="iv-due" type="date"></div>
           <div class="form-field"><label>Sąskaitos Nr. (mokėjimo paskirtis)</label><input id="iv-nr" type="text"></div>
+          <div class="form-field"><label>Tiekėjo IBAN (nebūtina)</label><input id="iv-iban" type="text" placeholder="LT..."></div>
           <div class="form-field"><label>Įmonė</label><select id="iv-co"></select></div>
           <div class="form-field"><label>Kategorija</label><select id="iv-cat"></select></div>
         </div>
@@ -745,7 +763,7 @@ const DB = (() => {
     const bal={};
     co(id).accs.forEach(a=>bal[a.id]=0);
     co(id).cash.forEach(r=>bal[r.id]=0);
-    return {bal,proj:0,revs:[],exps:[]};
+    return {bal,proj:0,revs:[],exps:[],paid:[]};
   };
   const getM = (c,y,m) => {
     const k=key(c,y,m);
@@ -769,6 +787,9 @@ const DB = (() => {
     delRev: (c,y,m,id) => { const M=getM(c,y,m); M.revs=M.revs.filter(r=>r.id!==id); setM(c,y,m,M); },
     addExp: (c,y,m,e) => { const M=getM(c,y,m); e.id=Date.now()+Math.random(); M.exps.push(e); setM(c,y,m,M); return e; },
     delExp: (c,y,m,id) => { const M=getM(c,y,m); M.exps=M.exps.filter(e=>e.id!==id); setM(c,y,m,M); },
+    payExp: (c,y,m,id) => { const M=getM(c,y,m); const e=M.exps.find(x=>x.id===id); if(!e) return; M.exps=M.exps.filter(x=>x.id!==id); M.paid=M.paid||[]; M.paid.push({...e, paidAt:new Date().toISOString().slice(0,10)}); setM(c,y,m,M); },
+    unpayExp: (c,y,m,id) => { const M=getM(c,y,m); const e=(M.paid||[]).find(x=>x.id===id); if(!e) return; M.paid=M.paid.filter(x=>x.id!==id); delete e.paidAt; M.exps.push(e); setM(c,y,m,M); },
+    delPaid: (c,y,m,id) => { const M=getM(c,y,m); M.paid=(M.paid||[]).filter(x=>x.id!==id); setM(c,y,m,M); },
     getTemplates: cid => (d.tmpl||{})[cid]||[],
     addTemplate: (cid,t) => { d.tmpl=d.tmpl||{}; d.tmpl[cid]=d.tmpl[cid]||[]; t.tmplId=Date.now()+Math.random(); d.tmpl[cid].push(t); save(); return t; },
     delTemplate: (cid,tmplId) => { d.tmpl=d.tmpl||{}; d.tmpl[cid]=(d.tmpl[cid]||[]).filter(t=>t.tmplId!==tmplId); save(); },
@@ -1011,6 +1032,7 @@ function renderAllTasks() {
           ${(e.isTemplate||e.isFromTemplate)?' · <span style="color:var(--blue);font-size:10px">🔄 pastovi</span>':''}
           ${cat?' · '+cat.i+' '+cat.l:''}
           ${e.invNr?` · <span class="inv-nr" onclick="event.stopPropagation();copyTxt('${esc(e.invNr)}')" title="Kopijuoti mokėjimo paskirčiai">📄 ${esc(e.invNr)}</span>`:''}
+          ${e.iban?` · <span class="inv-nr" onclick="event.stopPropagation();copyTxt('${esc(e.iban)}')" title="Kopijuoti IBAN: ${esc(e.iban)}">🏦 IBAN</span>`:''}
           ${urgLabel?` · <span style="color:var(--red);font-weight:600">${urgLabel}</span>`:''}
         </div>
       </div>
@@ -1080,7 +1102,7 @@ function renderCompany(co, full=false) {
     return `<div class="tbl-row tbl-exp${urgClass?' urg-'+urgClass:''}">
       <div class="cell cell-name">
         ${esc(e.name.length>55?e.name.slice(0,55)+'…':e.name)}
-        <div class="cell-note">${(e.isTemplate||e.isFromTemplate)?'<span style="color:var(--blue);font-size:10px">🔄</span> ':''}${cat?cat.i+' '+cat.l:''}${e.invNr?` · <span class="inv-nr" onclick="event.stopPropagation();copyTxt('${esc(e.invNr)}')" title="Kopijuoti mokėjimo paskirčiai">📄 ${esc(e.invNr)}</span>`:''}${e.note?' · '+esc(e.note.slice(0,40)):''}</div>
+        <div class="cell-note">${(e.isTemplate||e.isFromTemplate)?'<span style="color:var(--blue);font-size:10px">🔄</span> ':''}${cat?cat.i+' '+cat.l:''}${e.invNr?` · <span class="inv-nr" onclick="event.stopPropagation();copyTxt('${esc(e.invNr)}')" title="Kopijuoti mokėjimo paskirčiai">📄 ${esc(e.invNr)}</span>`:''}${e.iban?` · <span class="inv-nr" onclick="event.stopPropagation();copyTxt('${esc(e.iban)}')" title="Kopijuoti IBAN: ${esc(e.iban)}">🏦 IBAN</span>`:''}${e.note?' · '+esc(e.note.slice(0,40)):''}</div>
       </div>
       <div class="cell cell-amt neg">${fmt(e.amt)}</div>
       <div class="cell cell-due${urgClass==='ov'?' ov':urgClass==='hi'?' hi':''}">
@@ -1093,6 +1115,31 @@ function renderCompany(co, full=false) {
   }).join('');
 
   const expTotal = M.exps.reduce((s,e)=>s+(e.amt||0),0);
+
+  // Apmokėjimų archyvas
+  const paidArr = M.paid || [];
+  const paidSum = paidArr.reduce((s,e)=>s+(e.amt||0),0);
+  const paidSection = paidArr.length ? `
+    <details class="paid-box">
+      <summary class="paid-summary">
+        <span class="sec-title" style="color:var(--green)">✓ Apmokėta šį mėnesį</span>
+        <span class="paid-hint">spausk išskleisti</span>
+        <span class="sec-funds" style="color:var(--green)">${fmtK(paidSum)} (${paidArr.length} poz.)</span>
+      </summary>
+      ${[...paidArr].reverse().map(e=>{
+        const pcat = CATS.find(c=>c.id===e.cat);
+        return `<div class="tbl-row tbl-paid">
+          <div class="cell cell-name" style="color:var(--text2)">${esc(e.name)}
+            <div class="cell-note">${pcat?pcat.i+' '+pcat.l+' · ':''}${e.invNr?`📄 ${esc(e.invNr)} · `:''}apmokėta ${esc(e.paidAt||'—')}</div>
+          </div>
+          <div class="cell cell-amt" style="color:var(--green)">${fmt(e.amt)}</div>
+          <div class="cell" style="display:flex;gap:2px;justify-content:flex-end">
+            <button class="del-btn admin-only" onclick="unpay('${co.id}',${e.id})" title="Grąžinti į neapmokėtas">↩</button>
+            <button class="del-btn admin-only" onclick="delPaidRow('${co.id}',${e.id})" title="Ištrinti visam laikui">✕</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </details>` : '';
 
   const tmpls = DB.getTemplates(co.id);
   const tmplSection = (!isView && full && tmpls.length) ? `
@@ -1195,6 +1242,7 @@ function renderCompany(co, full=false) {
          <div class="tbl-total"><span class="tbl-total-label">Iš viso</span>
            <span class="tbl-total-val">${fmt(expTotal)}</span></div>`
       : '<div class="empty">Išlaidų nėra.</div>'}
+    ${paidSection}
     ${addExpForm}
   </div>`;
 }
@@ -1233,11 +1281,13 @@ function delTemplate(cid, tmplId) {
 }
 
 function delExp(cid, id) {
-  DB.delExp(cid, yr, mo, id);
-  toast('✓ Pažymėta kaip apmokėta');
+  DB.payExp(cid, yr, mo, id);
+  toast('✓ Apmokėta — perkelta į archyvą');
   render();
 }
 function delExpGlobal(cid, id) { delExp(cid, id); }
+function unpay(cid, id) { DB.unpayExp(cid, yr, mo, id); toast('↩ Grąžinta į neapmokėtas'); render(); }
+function delPaidRow(cid, id) { DB.delPaid(cid, yr, mo, id); toast('Ištrinta visam'); render(); }
 
 function addRev(cid) {
   const date=document.getElementById('rd-'+cid).value;
@@ -1343,7 +1393,11 @@ const parseNum = s => {
 function parseInvoiceText(text) {
   const t = text.replace(/ /g,' ');
   const low = t.toLowerCase();
-  const out = {supplier:'', amt:null, dueDate:'', invNr:'', companyId:'', cat:'sup'};
+  const out = {supplier:'', amt:null, dueDate:'', invNr:'', iban:'', companyId:'', cat:'sup'};
+
+  // Tiekėjo IBAN (pirmas LT IBAN dokumente)
+  const ibanM = t.replace(/\s/g,'').match(/\bLT\d{18}\b/) || t.match(/\bLT\d{2}(?:\s?\d{4}){4}\b/);
+  if(ibanM) out.iban = ibanM[0].replace(/\s/g,'');
 
   // Tiekėjas — pirma pagal žinomus, tada pagal UAB/AB pavadinimą (praleidžiant savas įmones)
   for(const s of KNOWN_SUPPLIERS) { if(low.includes(s.k)) { out.supplier=s.n; out.cat=s.cat; break; } }
@@ -1388,7 +1442,7 @@ function openInv() {
   document.getElementById('iv-co').innerHTML = COMPANIES.map(c=>`<option value="${c.id}">${c.label} — ${esc(c.name)}</option>`).join('');
   document.getElementById('iv-cat').innerHTML = CATS.map(c=>`<option value="${c.id}">${c.i} ${c.l}</option>`).join('');
   document.getElementById('iv-cat').value = 'sup';
-  ['inv-text','iv-sup','iv-amt','iv-due','iv-nr'].forEach(id=>document.getElementById(id).value='');
+  ['inv-text','iv-sup','iv-amt','iv-due','iv-nr','iv-iban'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('inv-preview').style.display = 'none';
   document.getElementById('inv-modal').style.display = 'flex';
 }
@@ -1399,6 +1453,7 @@ function showInvPreview(p) {
   document.getElementById('iv-amt').value = p.amt!=null && !isNaN(p.amt) ? Math.abs(p.amt) : '';
   document.getElementById('iv-due').value = p.dueDate || '';
   document.getElementById('iv-nr').value = p.invNr || '';
+  document.getElementById('iv-iban').value = p.iban || '';
   if(p.companyId) document.getElementById('iv-co').value = p.companyId;
   if(p.cat) document.getElementById('iv-cat').value = p.cat;
   document.getElementById('inv-preview').style.display = 'block';
@@ -1454,13 +1509,14 @@ function addInvoice() {
   let amt = parseFloat(document.getElementById('iv-amt').value) || 0;
   const dueDate = document.getElementById('iv-due').value;
   const nr = document.getElementById('iv-nr').value.trim();
+  const iban = document.getElementById('iv-iban').value.trim();
   const cid = document.getElementById('iv-co').value;
   const cat = document.getElementById('iv-cat').value;
   if(!sup) { toast('Įvesk tiekėją','err'); return; }
   if(!amt) { toast('Įvesk sumą','err'); return; }
   if(amt>0) amt = -amt;
   const due = dueDate ? parseInt(dueDate.slice(8,10)) : null;
-  DB.addExp(cid, yr, mo, {name:sup, amt, due, cat, note:'', invNr:nr, dueDate});
+  DB.addExp(cid, yr, mo, {name:sup, amt, due, cat, note:'', invNr:nr, iban, dueDate});
   toast(`📄 ${sup} ${fmt(amt)} pridėta`,'ok');
   closeInv();
   render();
@@ -1479,7 +1535,7 @@ window.importInvoice = function(json) {
     const dueDate = r.dueDate || '';
     const due = dueDate ? parseInt(String(dueDate).slice(8,10)) : null;
     DB.addExp(r.companyId||'darts', r.year||yr, r.month||mo,
-      {name:r.supplier||'Sąskaita', amt, due, cat:r.category||'sup', note:r.note||'', invNr:r.invoiceNr||'', dueDate});
+      {name:r.supplier||'Sąskaita', amt, due, cat:r.category||'sup', note:r.note||'', invNr:r.invoiceNr||'', iban:r.iban||'', dueDate});
     toast(`📄 Sąskaita: ${r.supplier||''} ${fmt(amt)}`,'ok');
     render();
     return {status:'ok'};
