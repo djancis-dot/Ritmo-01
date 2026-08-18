@@ -328,7 +328,7 @@ body {
   align-items: center;
   padding: 0 24px;
 }
-.tbl-exp { grid-template-columns: 1fr 115px 90px 36px; gap: 0; }
+.tbl-exp { grid-template-columns: 1fr 115px 90px 64px; gap: 0; }
 .tbl-rev { grid-template-columns: 92px 1fr 95px 95px 105px 36px; }
 
 .tbl-head {
@@ -519,6 +519,27 @@ body {
 .step-text { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
 .step-text strong { color: var(--navy); }
 
+/* ══ PASTOVI IŠLAIDA — perjungiklis eilutėje ══ */
+.tmpl-btn { opacity: .3; font-size: 12px; }
+.tmpl-btn:hover { opacity: 1; background: var(--blue-t); color: var(--royal); }
+.tmpl-btn.on { opacity: 1; background: var(--blue-t); }
+
+/* ══ TIEKĖJŲ BIUDŽETAS 30% ══ */
+.budget-row {
+  padding: 11px 24px 13px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surf);
+}
+.budget-line { display: flex; align-items: baseline; gap: 7px; margin: 5px 0 7px; font-size: 13.5px; }
+.budget-num { font-weight: 700; color: var(--navy); }
+.budget-num.g { color: var(--green); }
+.budget-num.r { color: var(--red); }
+.budget-sep { font-size: 11px; color: var(--text3); }
+.budget-pct { font-size: 11px; font-weight: 700; margin-left: 4px; }
+.budget-pct.g { color: var(--green); }
+.budget-pct.r { color: var(--red); }
+.budget-warn { font-size: 11px; color: var(--red); font-weight: 700; margin-left: auto; }
+
 /* ══ APMOKĖJIMŲ ARCHYVAS ══ */
 .paid-box { border-top: 1px solid var(--border); background: var(--surf); }
 .paid-box summary { list-style: none; }
@@ -706,6 +727,9 @@ body.view-mode input, body.view-mode select { pointer-events: none; opacity: .8;
           <div class="form-field"><label>Įmonė</label><select id="iv-co"></select></div>
           <div class="form-field"><label>Kategorija</label><select id="iv-cat"></select></div>
         </div>
+        <label style="display:flex;align-items:center;gap:7px;margin-top:12px;font-size:12.5px;color:var(--text2);cursor:pointer">
+          <input type="checkbox" id="iv-rec" style="accent-color:var(--royal)"> 🔄 Pastovi sąskaita — automatiškai kartoti kiekvieną mėnesį
+        </label>
       </div>
 
       <div class="info-box" style="font-size:11px">
@@ -728,7 +752,7 @@ const COMPANIES = [
     accs:[{id:'eu',l:'EU sąskaita'},{id:'vln',l:'Sąsk. Vilnius'},{id:'plg',l:'Sąsk. Palanga'}],
     cash:[{id:'vln_k',l:'Kasa Vilnius'},{id:'plg_k',l:'Kasa Palanga'}],
     locs:['Vilnius','Palanga'] },
-  { id:'uptown', label:'UPTOWN', name:'UAB Naujamiesčio biliardine',
+  { id:'uptown', label:'OFFLINE', name:'UAB Naujamiesčio biliardine',
     accs:[{id:'main',l:'Pagrindinė sąskaita'},{id:'pay',l:'Paysera'},{id:'seb',l:'SEB sąskaita'}],
     cash:[{id:'kasa',l:'Kasa'}],
     locs:['Vilnius'] },
@@ -767,13 +791,17 @@ const DB = (() => {
   };
   const getM = (c,y,m) => {
     const k=key(c,y,m);
-    if(!d.m[k]) {
-      const def=defM(c);
+    if(!d.m[k]) d.m[k]=defM(c);
+    const M=d.m[k];
+    // Pastoviųjų šablonai užpildo mėnesį, kuriame dar nieko nevyko
+    if(!M.tmplSeeded && !M.exps.length && !(M.paid||[]).length) {
       const tmpls=(d.tmpl||{})[c]||[];
-      if(tmpls.length) def.exps=tmpls.map(t=>({...t,id:Date.now()+Math.random(),isFromTemplate:true}));
-      d.m[k]=def;
+      if(tmpls.length) {
+        M.exps=tmpls.map(t=>({...t,id:Date.now()+Math.random(),isFromTemplate:true}));
+        M.tmplSeeded=true;
+      }
     }
-    return d.m[k];
+    return M;
   };
   const setM = (c,y,m,v) => { d.m[key(c,y,m)]=v; save(); };
   load();
@@ -872,7 +900,7 @@ function parseCSV(text) {
     // Detect section header
     const aUp = a.toUpperCase();
     if(aUp==='DARTS'||b==='DARTS') { currentSec='darts'; continue; }
-    if(aUp==='UPTOWN'||b==='UPTOWN') { currentSec='uptown'; continue; }
+    if(aUp==='UPTOWN'||b==='UPTOWN'||aUp==='OFFLINE'||b==='OFFLINE') { currentSec='uptown'; continue; }
     if(aUp==='RITMAS'||b==='RITMAS') { currentSec='ritmas'; continue; }
     if(!currentSec) continue;
 
@@ -1040,8 +1068,9 @@ function renderAllTasks() {
       <div class="cell cell-due${urgClass==='ov'?' ov':urgClass==='hi'?' hi':''}">
         ${e.due?'iki '+e.due+'d.':'—'}
       </div>
-      <div class="cell">
-        <button class="del-btn admin-only" onclick="delExpGlobal('${e._co}',${e.id})" title="Pažymėti kaip apmokėta (ištrinti)">✓</button>
+      <div class="cell" style="display:flex;gap:1px;justify-content:flex-end">
+        <button class="del-btn admin-only tmpl-btn${(e.isTemplate||e.isFromTemplate)?' on':''}" onclick="toggleTmpl('${e._co}',${e.id})" title="${(e.isTemplate||e.isFromTemplate)?'Pastovi — spausk išjungti kartojimą':'Pažymėti pastovia — kartosis kas mėnesį'}">🔄</button>
+        <button class="del-btn admin-only" onclick="delExpGlobal('${e._co}',${e.id})" title="Apmokėta — į archyvą">✓</button>
       </div>
     </div>`;
   }).join('');
@@ -1094,6 +1123,27 @@ function renderCompany(co, full=false) {
         <input class="proj-inp" type="number" value="${T.remain.toFixed(2)}" readonly></div>
     </div>`;
 
+  // Tiekėjų biudžetas — tikslas 30% nuo projekcinės apyvartos
+  let budgetRow = '';
+  if(M.proj > 0) {
+    const supSpent = [...M.exps, ...(M.paid||[])].filter(e=>e.cat==='sup').reduce((s,e)=>s+Math.abs(e.amt||0),0);
+    const supTarget = M.proj * 0.30;
+    const supPct = supTarget>0 ? (supSpent/supTarget)*100 : 0;
+    const over = supSpent > supTarget;
+    budgetRow = `
+    <div class="budget-row">
+      <label class="microlabel">Tiekėjai — tikslas 30% apyvartos</label>
+      <div class="budget-line">
+        <span class="budget-num ${over?'r':'g'}">${fmtK(supSpent)}</span>
+        <span class="budget-sep">iš limito</span>
+        <span class="budget-num">${fmtK(supTarget)}</span>
+        <span class="budget-pct ${over?'r':'g'}">${supPct.toFixed(0)}%</span>
+        ${over?`<span class="budget-warn">⚠ Viršyta ${fmtK(supSpent-supTarget)}</span>`:''}
+      </div>
+      <div class="prog-track"><div class="prog-fill" style="width:${Math.min(100,supPct)}%;background:${over?'var(--red)':'var(--green)'}"></div></div>
+    </div>`;
+  }
+
   // Expenses
   const sortedExps = [...M.exps].sort((a,b)=>(a.due||99)-(b.due||99));
   const expRows = sortedExps.map(e=>{
@@ -1108,8 +1158,9 @@ function renderCompany(co, full=false) {
       <div class="cell cell-due${urgClass==='ov'?' ov':urgClass==='hi'?' hi':''}">
         ${e.due?'iki '+e.due+'d.':'—'}
       </div>
-      <div class="cell">
-        <button class="del-btn admin-only" onclick="delExp('${co.id}',${e.id})" title="Apmokėta — ištrinti">✓</button>
+      <div class="cell" style="display:flex;gap:1px;justify-content:flex-end">
+        <button class="del-btn admin-only tmpl-btn${(e.isTemplate||e.isFromTemplate)?' on':''}" onclick="toggleTmpl('${co.id}',${e.id})" title="${(e.isTemplate||e.isFromTemplate)?'Pastovi — spausk išjungti kartojimą':'Pažymėti pastovia — kartosis kas mėnesį'}">🔄</button>
+        <button class="del-btn admin-only" onclick="delExp('${co.id}',${e.id})" title="Apmokėta — į archyvą">✓</button>
       </div>
     </div>`;
   }).join('');
@@ -1230,6 +1281,7 @@ function renderCompany(co, full=false) {
     </div>
     <div class="bal-grid">${balCells}</div>
     ${projSection}
+    ${budgetRow}
     ${revSection}
     <div class="sec-head" style="margin-top:1px">
       <span class="sec-title">Neapmokėtos išlaidos</span>
@@ -1264,8 +1316,9 @@ function addExp(cid) {
   if(!name){toast('Įvesk pavadinimą','err');return;}
   if(amt===0){toast('Įvesk sumą','err');return;}
   if(amt>0)amt=-amt;
-  DB.addExp(cid,yr,mo,{name,amt,due,cat,note:'',isTemplate:recurring});
-  if(recurring) DB.addTemplate(cid,{name,amt,due,cat,note:''});
+  const expObj = {name,amt,due,cat,note:'',isTemplate:recurring};
+  if(recurring) { const t = DB.addTemplate(cid,{name,amt,due,cat,note:''}); expObj.tmplId = t.tmplId; }
+  DB.addExp(cid,yr,mo,expObj);
   document.getElementById('en-'+cid).value='';
   document.getElementById('ea-'+cid).value='';
   document.getElementById('ed-'+cid).value='';
@@ -1277,6 +1330,26 @@ function addExp(cid) {
 function delTemplate(cid, tmplId) {
   DB.delTemplate(cid, tmplId);
   toast('Šablonas pašalintas');
+  render();
+}
+
+function toggleTmpl(cid, id) {
+  const M = DB.getM(cid, yr, mo);
+  const e = M.exps.find(x=>x.id===id);
+  if(!e) return;
+  if(e.isTemplate || e.isFromTemplate) {
+    const tmpls = DB.getTemplates(cid);
+    const tm = tmpls.find(t=>t.tmplId===e.tmplId) || tmpls.find(t=>t.name===e.name);
+    if(tm) DB.delTemplate(cid, tm.tmplId);
+    e.isTemplate = false; e.isFromTemplate = false; delete e.tmplId;
+    DB.setM(cid, yr, mo, M);
+    toast('Nebe pastovi — kitą mėnesį nebesikartos');
+  } else {
+    const t = DB.addTemplate(cid, {name:e.name, amt:e.amt, due:e.due, cat:e.cat, note:e.note||'', iban:e.iban||''});
+    e.isTemplate = true; e.tmplId = t.tmplId;
+    DB.setM(cid, yr, mo, M);
+    toast('🔄 Pastovi — automatiškai atsiras kitą mėnesį','ok');
+  }
   render();
 }
 
@@ -1443,6 +1516,7 @@ function openInv() {
   document.getElementById('iv-cat').innerHTML = CATS.map(c=>`<option value="${c.id}">${c.i} ${c.l}</option>`).join('');
   document.getElementById('iv-cat').value = 'sup';
   ['inv-text','iv-sup','iv-amt','iv-due','iv-nr','iv-iban'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('iv-rec').checked = false;
   document.getElementById('inv-preview').style.display = 'none';
   document.getElementById('inv-modal').style.display = 'flex';
 }
@@ -1516,7 +1590,12 @@ function addInvoice() {
   if(!amt) { toast('Įvesk sumą','err'); return; }
   if(amt>0) amt = -amt;
   const due = dueDate ? parseInt(dueDate.slice(8,10)) : null;
-  DB.addExp(cid, yr, mo, {name:sup, amt, due, cat, note:'', invNr:nr, iban, dueDate});
+  const expObj = {name:sup, amt, due, cat, note:'', invNr:nr, iban, dueDate};
+  if(document.getElementById('iv-rec').checked) {
+    const t = DB.addTemplate(cid, {name:sup, amt, due, cat, note:'', iban});
+    expObj.isTemplate = true; expObj.tmplId = t.tmplId;
+  }
+  DB.addExp(cid, yr, mo, expObj);
   toast(`📄 ${sup} ${fmt(amt)} pridėta`,'ok');
   closeInv();
   render();
