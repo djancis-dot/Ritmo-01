@@ -1,34 +1,41 @@
 <title>Ritmo — Finansų valdymas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
 <style>
-/* ── DESIGN TOKENS ── */
+/* ══ DESIGN TOKENS — STA Invest style ══ */
 :root {
-  --navy:     #0B1F3A;
-  --navy2:    #162F57;
-  --blue:     #1A56DB;
-  --blue-h:   #1347C0;
-  --blue-t:   #EDF3FF;
-  --blue-t2:  #D8E8FF;
-  --gold:     #A07800;
+  --royal:    #1B3EC2;   /* pagrindinė royal blue */
+  --royal-h:  #1534A6;
+  --royal-d:  #122E93;
+  --navy:     #10265F;   /* antraštės ant balto */
+  --navy2:    #10265F;
+  --blue:     #1B3EC2;
+  --blue-h:   #1534A6;
+  --blue-t:   #F0F3FC;
+  --blue-t2:  #DCE3F7;
+  --gold:     #8C6200;
   --gold-t:   #FFF8E0;
-  --bg:       #F2F5FA;
+  --bg:       #F7F8FB;
   --surf:     #FFFFFF;
-  --border:   #D0DCEE;
-  --border2:  #BBC9DE;
-  --text:     #0A1929;
-  --text2:    #4A5E78;
-  --text3:    #8FA4BC;
-  --green:    #0A6B44;
-  --green-t:  #E6F5EE;
-  --red:      #C21A1A;
-  --red-t:    #FEF0F0;
+  --border:   #E4E8F1;
+  --border2:  #C9D1E4;
+  --text:     #131C36;
+  --text2:    #4A5573;
+  --text3:    #8B94AD;
+  --green:    #0E7A4E;   /* esami pinigai */
+  --green-t:  #EBF5F0;
+  --red:      #C22C2C;   /* išlaidos */
+  --red-t:    #FBF0F0;
   --amber:    #8C6200;
   --amber-t:  #FFF4D6;
-  --mono:     ui-monospace,'Courier New',monospace;
-  --sans:     'Helvetica Neue','Arial',system-ui,sans-serif;
-  --r:        8px;
-  --rs:       5px;
-  --shadow:   0 1px 3px rgba(10,25,60,.08), 0 1px 2px rgba(10,25,60,.05);
-  --shadow2:  0 4px 12px rgba(10,25,60,.1);
+  --serif:    'Playfair Display', Georgia, 'Times New Roman', serif;
+  --sans:     'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  --mono:     'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  --r:        3px;
+  --rs:       2px;
+  --shadow:   none;
+  --shadow2:  0 18px 50px rgba(16,38,95,.14);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,8 +46,8 @@ body {
   font-family: var(--sans);
   background: var(--bg);
   color: var(--text);
-  font-size: 13.5px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.55;
   min-height: 100vh;
 }
 
@@ -48,336 +55,372 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 
-/* ── TOP BAR ── */
+/* skaičiai visur lygiuoti */
+.bal-inp, .proj-inp, .cell-amt, .cell-cash, .cell-card,
+.hkpi b, .co-stat b, .sec-funds, .alltasks-sum, .tbl-total-val, .hero-value {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* mikro-etiketė (STA stiliaus uppercase) */
+.microlabel, .ff label, .bal-cell label, .proj-cell label, .prog-bar label,
+.form-field label, .co-stat label, .hkpi label {
+  font-size: 9.5px; font-weight: 600;
+  letter-spacing: .18em; text-transform: uppercase;
+  color: var(--text3);
+}
+
+/* ══ TOP BAR ══ */
 .topbar {
-  background: var(--navy);
-  height: 54px;
+  background: var(--surf);
+  border-bottom: 1px solid var(--border);
+  height: 62px;
   display: flex;
   align-items: center;
-  padding: 0 24px;
-  gap: 16px;
+  padding: 0 28px;
+  gap: 20px;
   position: sticky;
   top: 0;
   z-index: 100;
 }
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+.logo { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.logo-name {
+  font-family: var(--serif);
+  font-size: 21px; font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--navy);
 }
-.logo-mark {
-  width: 30px; height: 30px;
-  background: var(--blue);
-  border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 800; color: #fff;
-  letter-spacing: -0.5px;
+.logo-rule { width: 1px; height: 26px; background: var(--border2); }
+.logo-sub {
+  font-size: 8.5px; font-weight: 600;
+  letter-spacing: .22em; text-transform: uppercase;
+  color: var(--text3); line-height: 1.5;
 }
-.logo-text { font-size: 14px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
-.logo-sub { font-size: 10px; color: rgba(255,255,255,.45); font-weight: 500; }
 
-.topbar-mid { flex: 1; display: flex; align-items: center; gap: 6px; justify-content: center; }
+.topbar-mid { flex: 1; display: flex; align-items: center; gap: 28px; justify-content: center; }
 
 .nav-pill {
-  padding: 5px 14px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: .18em; text-transform: uppercase;
   cursor: pointer;
-  color: rgba(255,255,255,.55);
-  border: 1px solid transparent;
+  color: var(--text2);
+  padding: 6px 2px;
+  border-bottom: 2px solid transparent;
   transition: all .15s;
   white-space: nowrap;
   user-select: none;
 }
-.nav-pill:hover { color: rgba(255,255,255,.85); border-color: rgba(255,255,255,.15); }
-.nav-pill.on { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.25); color: #fff; }
+.nav-pill:hover { color: var(--navy); }
+.nav-pill.on { color: var(--royal); border-bottom-color: var(--royal); }
 
-.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
 .mode-chip {
-  font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
-  padding: 3px 9px; border-radius: 20px;
-  background: rgba(26,86,219,.35); color: #7BB3FF;
-  border: 1px solid rgba(26,86,219,.4);
+  font-size: 9px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+  padding: 4px 11px; border-radius: 2px;
+  border: 1px solid var(--blue-t2);
+  background: var(--blue-t); color: var(--royal);
 }
-.mode-chip.view { background: rgba(160,120,0,.3); color: #FFC947; border-color: rgba(160,120,0,.4); }
+.mode-chip.view { background: var(--gold-t); color: var(--gold); border-color: #EFE0B0; }
 
-/* ── MONTH BAR ── */
+/* ══ MONTH BAR ══ */
 .monthbar {
-  background: var(--navy2);
-  border-bottom: 1px solid rgba(255,255,255,.08);
-  height: 40px;
+  background: var(--surf);
+  border-bottom: 1px solid var(--border);
+  height: 52px;
   display: flex;
   align-items: center;
-  padding: 0 24px;
-  gap: 12px;
+  padding: 0 28px;
+  gap: 14px;
 }
 .mbtn {
-  background: rgba(255,255,255,.1);
-  border: none; color: rgba(255,255,255,.7);
-  width: 26px; height: 26px;
+  background: transparent;
+  border: 1px solid var(--border2); color: var(--text2);
+  width: 28px; height: 28px;
   border-radius: var(--rs); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px;
+  font-size: 15px;
   transition: all .12s;
 }
-.mbtn:hover { background: rgba(255,255,255,.18); color: #fff; }
+.mbtn:hover { border-color: var(--royal); color: var(--royal); }
 .mlabel {
-  font-size: 13px; font-weight: 700; color: #fff;
-  letter-spacing: -.2px; text-transform: capitalize;
-  min-width: 140px;
+  font-family: var(--serif);
+  font-size: 18px; font-weight: 600; color: var(--navy);
+  text-transform: capitalize;
+  min-width: 170px;
 }
 .sheets-btn {
   margin-left: auto;
-  font-size: 11px; font-weight: 600;
-  padding: 4px 12px;
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase;
+  padding: 7px 14px;
   border-radius: var(--rs);
-  border: 1px solid rgba(255,255,255,.2);
-  background: transparent; color: rgba(255,255,255,.7);
+  border: 1px solid var(--border2);
+  background: transparent; color: var(--text2);
   cursor: pointer; transition: all .12s;
-  display: flex; align-items: center; gap: 5px;
+  display: flex; align-items: center; gap: 7px;
 }
-.sheets-btn:hover { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.35); }
-.sheets-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
-.sheets-dot.off { background: rgba(255,255,255,.3); }
+.sheets-btn:hover { border-color: var(--royal); color: var(--royal); }
+.sheets-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+.sheets-dot.off { background: var(--border2); }
 
-/* ── GRAND TOTAL STRIP ── */
-.grand-strip {
-  background: var(--navy);
-  padding: 16px 24px;
+/* ══ HERO — didysis skaičius (STA mėlynas blokas) ══ */
+.hero {
+  background:
+    radial-gradient(130% 180% at 88% -30%, rgba(87,124,255,.28), transparent 55%),
+    linear-gradient(158deg, #1E45CF 0%, #16339F 62%, #122A85 100%);
+  padding: 42px 28px 34px;
+}
+.hero-inner { max-width: 1080px; margin: 0 auto; }
+.hero-label {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: .24em; text-transform: uppercase;
+  color: rgba(255,255,255,.55);
+  margin-bottom: 10px;
+}
+.hero-value {
+  font-family: var(--serif);
+  font-size: clamp(42px, 6vw, 62px);
+  font-weight: 600;
+  letter-spacing: -.01em;
+  line-height: 1.02;
+  color: #fff; /* balta = projekcija */
+}
+.hero-status { margin-top: 14px; display: flex; align-items: center; gap: 12px; }
+.hero-chip {
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: .2em; text-transform: uppercase;
+  padding: 4px 12px;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 2px;
+}
+.hero-chip.g { color: #7FE0AC; border-color: rgba(127,224,172,.45); }
+.hero-chip.a { color: #FFD37B; border-color: rgba(255,211,123,.45); }
+.hero-chip.r { color: #FF9E9E; border-color: rgba(255,158,158,.45); }
+.hero-note { font-size: 11.5px; color: rgba(255,255,255,.5); }
+
+.hero-kpis {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 16px;
-  align-items: center;
-  border-bottom: 2px solid rgba(255,255,255,.06);
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,.18);
 }
-.grand-left { display: flex; flex-direction: column; gap: 4px; }
-.grand-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,.4); }
-.grand-value {
-  font-family: var(--mono);
-  font-size: 32px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -1px;
-  line-height: 1;
-  color: #fff;
-}
-.grand-value.pos { color: #4ade80; }
-.grand-value.warn { color: #FFC947; }
-.grand-value.neg { color: #FC8181; }
-.grand-status { font-size: 11px; font-weight: 600; margin-top: 2px; }
+.hkpi label { color: rgba(255,255,255,.5); display: block; margin-bottom: 4px; }
+.hkpi b { font-size: 18px; font-weight: 700; color: #fff; }
+.hkpi b.g { color: #7FE0AC; }  /* žalia = esami pinigai */
+.hkpi b.r { color: #FF9E9E; } /* raudona = išlaidos */
+.hkpi b.w { color: #fff; }    /* balta = projekcija */
 
-.grand-kpis { display: flex; gap: 24px; }
-.gkpi { text-align: right; }
-.gkpi-label { font-size: 9.5px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: rgba(255,255,255,.35); margin-bottom: 3px; }
-.gkpi-value { font-family: var(--mono); font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.8); }
-.gkpi-value.g { color: #4ade80; }
-.gkpi-value.r { color: #FC8181; }
+/* ══ MAIN LAYOUT ══ */
+.main { max-width: 1080px; margin: 0 auto; padding: 26px 20px 70px; display: flex; flex-direction: column; gap: 22px; }
 
-/* ── MAIN LAYOUT ── */
-.main { max-width: 1080px; margin: 0 auto; padding: 20px 20px 60px; display: flex; flex-direction: column; gap: 16px; }
-
-/* ── CARDS ── */
+/* ══ CARDS ══ */
 .card {
   background: var(--surf);
   border: 1px solid var(--border);
   border-radius: var(--r);
-  box-shadow: var(--shadow);
   overflow: hidden;
 }
-.card-head {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  background: var(--surf);
-}
-.card-title {
-  font-size: 10.5px; font-weight: 700;
-  letter-spacing: .7px; text-transform: uppercase;
-  color: var(--text3);
-}
-.card-body { padding: 0; }
 
-/* ── SECTION DIVIDERS ── */
+/* ══ ĮMONĖS ANTRAŠTĖ — romėniškas numeris kaip STA ══ */
+.co-head {
+  display: flex; align-items: center; gap: 18px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.co-num {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 24px; font-weight: 600;
+  color: var(--royal);
+  min-width: 34px;
+}
+.co-name {
+  font-family: var(--serif);
+  font-size: 22px; font-weight: 700;
+  color: var(--navy);
+  letter-spacing: .02em;
+  line-height: 1.1;
+}
+.co-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.co-stats { margin-left: auto; display: flex; gap: 26px; }
+.co-stat { text-align: right; }
+.co-stat label { display: block; margin-bottom: 2px; }
+.co-stat b { font-size: 15px; font-weight: 700; color: var(--navy); }
+.co-stat b.g { color: var(--green); }
+.co-stat b.r { color: var(--red); }
+
+/* ══ SEKCIJŲ ANTRAŠTĖS (vidinės) ══ */
 .sec-head {
   display: flex; align-items: center; gap: 12px;
-  padding: 0 16px;
-  height: 38px;
-  background: var(--blue-t);
-  border-bottom: 1px solid var(--blue-t2);
+  padding: 0 24px;
+  height: 40px;
+  background: var(--surf);
+  border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border);
 }
+.card > .sec-head:first-child { border-top: none; }
 .sec-title {
-  font-size: 11px; font-weight: 800;
-  letter-spacing: .8px; text-transform: uppercase;
-  color: var(--blue);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: var(--royal);
 }
 .sec-funds {
-  font-family: var(--mono);
-  font-size: 11.5px; font-weight: 700;
+  font-size: 12.5px; font-weight: 700;
   color: var(--text2);
-  font-variant-numeric: tabular-nums;
   margin-left: auto;
 }
 .sec-proj { font-size: 11px; color: var(--text3); }
 
-/* ── BALANCE GRID ── */
+/* ══ BALANSŲ TINKLELIS — žalia = esami pinigai ══ */
 .bal-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 1px;
   background: var(--border);
 }
-.bal-cell {
-  background: var(--surf);
-  padding: 10px 14px;
-}
-.bal-cell label { display: block; font-size: 10px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: var(--text3); margin-bottom: 3px; }
+.bal-cell { background: var(--surf); padding: 13px 18px; }
+.bal-cell label { display: block; margin-bottom: 4px; }
 .bal-inp {
   width: 100%;
-  font-family: var(--mono);
-  font-size: 15px;
+  font-family: var(--sans);
+  font-size: 16px;
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--text);
+  color: var(--green);
   border: none;
   background: transparent;
   outline: none;
   padding: 0;
 }
-.bal-inp:focus { color: var(--blue); }
-.bal-inp[readonly] { color: var(--text2); cursor: default; }
+.bal-inp:focus { color: var(--royal); }
+.bal-inp[readonly] { cursor: default; }
 
-/* ── PROJECTION ROW ── */
+/* ══ PROJEKCIJOS EILUTĖ ══ */
 .proj-row {
   display: flex; align-items: center; gap: 0;
+  border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   background: var(--surf);
 }
-.proj-cell {
-  flex: 1; padding: 10px 14px;
-  border-right: 1px solid var(--border);
-}
+.proj-cell { flex: 1; padding: 13px 18px; border-right: 1px solid var(--border); }
 .proj-cell:last-child { border-right: none; }
-.proj-cell label { display: block; font-size: 10px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: var(--text3); margin-bottom: 3px; }
+.proj-cell label { display: block; margin-bottom: 4px; }
 .proj-inp {
-  font-family: var(--mono);
-  font-size: 15px; font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px; font-weight: 700;
+  color: var(--navy);
   border: none; background: transparent; outline: none;
   width: 100%;
 }
-.proj-inp:focus { color: var(--blue); }
+.proj-inp:focus { color: var(--royal); }
 .proj-inp[readonly] { color: var(--text2); cursor: default; }
 
-.prog-bar { flex: 2; padding: 10px 14px; }
-.prog-bar label { display: block; font-size: 10px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: var(--text3); margin-bottom: 5px; }
-.prog-track { height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
-.prog-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width .4s ease; }
-.prog-meta { display: flex; justify-content: space-between; font-size: 10px; color: var(--text3); margin-top: 3px; }
+.prog-bar { flex: 2; padding: 13px 18px; }
+.prog-bar label { display: block; margin-bottom: 6px; }
+.prog-track { height: 4px; background: var(--blue-t2); border-radius: 2px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width .4s ease; }
+.prog-meta { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text3); margin-top: 4px; }
 
-/* ── TABLE ── */
+/* ══ LENTELĖS ══ */
 .tbl-head, .tbl-row {
   display: grid;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 24px;
 }
-/* Expenses: name | amount | due | action */
-.tbl-exp { grid-template-columns: 1fr 110px 90px 36px; gap: 0; }
-/* Revenues: date | loc/fiscal | cash | card | total | action */
-.tbl-rev { grid-template-columns: 88px 1fr 92px 92px 100px 36px; }
+.tbl-exp { grid-template-columns: 1fr 115px 90px 36px; gap: 0; }
+.tbl-rev { grid-template-columns: 92px 1fr 95px 95px 105px 36px; }
 
 .tbl-head {
-  height: 32px;
-  background: var(--bg);
+  height: 34px;
+  background: var(--surf);
   border-bottom: 1px solid var(--border);
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: .6px;
+  letter-spacing: .16em;
   text-transform: uppercase;
   color: var(--text3);
 }
 .tbl-row {
-  min-height: 38px;
-  border-bottom: 1px solid var(--border);
+  min-height: 42px;
+  border-bottom: 1px solid #EDF0F7;
   background: var(--surf);
   transition: background .1s;
 }
 .tbl-row:last-child { border-bottom: none; }
 .tbl-row:hover { background: var(--blue-t); }
 
-/* Urgency via left border on expense rows */
-.tbl-row.urg-ov { border-left: 3px solid var(--red); }
-.tbl-row.urg-hi { border-left: 3px solid var(--amber); }
-.tbl-row.urg-lo { border-left: 3px solid #C5D8F0; }
+/* Terminų skuba — kairysis brūkšnys */
+.tbl-row.urg-ov { box-shadow: inset 3px 0 0 var(--red); }
+.tbl-row.urg-hi { box-shadow: inset 3px 0 0 #D9A400; }
+.tbl-row.urg-lo { box-shadow: inset 3px 0 0 var(--blue-t2); }
 
-.cell { padding: 8px 8px; font-size: 13px; }
-.cell:first-child { padding-left: 16px; }
-.cell:last-child { padding-right: 10px; }
-.cell-name { font-weight: 500; line-height: 1.3; }
+.cell { padding: 9px 8px; font-size: 13.5px; }
+.cell:first-child { padding-left: 0; }
+.cell:last-child { padding-right: 0; }
+.cell-name { font-weight: 500; line-height: 1.35; color: var(--text); }
 .cell-note { font-size: 10.5px; color: var(--text3); margin-top: 1px; }
-.cell-amt { font-family: var(--mono); font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
-.cell-amt.neg { color: var(--red); }
-.cell-amt.pos { color: var(--green); }
+.cell-amt { font-size: 13.5px; font-weight: 700; text-align: right; }
+.cell-amt.neg { color: var(--red); }   /* raudona = išlaidos */
+.cell-amt.pos { color: var(--green); } /* žalia = pinigai */
 .cell-due { font-size: 11.5px; color: var(--text3); text-align: center; }
 .cell-due.ov { color: var(--red); font-weight: 700; }
 .cell-due.hi { color: var(--amber); font-weight: 600; }
-.cell-cash { font-family: var(--mono); font-size: 12.5px; color: var(--amber); font-variant-numeric: tabular-nums; text-align: right; }
-.cell-card { font-family: var(--mono); font-size: 12.5px; color: var(--blue); font-variant-numeric: tabular-nums; text-align: right; }
+.cell-cash { font-size: 12.5px; color: var(--text2); text-align: right; }
+.cell-card { font-size: 12.5px; color: var(--royal); text-align: right; }
 .cell-loc { font-size: 11.5px; color: var(--text2); }
 
-/* ── TOTAL ROW ── */
+/* ══ SUMOS EILUTĖ ══ */
 .tbl-total {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 9px 16px;
-  background: var(--bg);
-  border-top: 2px solid var(--border);
+  padding: 11px 24px;
+  background: var(--surf);
+  border-top: 2px solid var(--navy);
 }
-.tbl-total-label { font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text3); }
-.tbl-total-val { font-family: var(--mono); font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--red); }
+.tbl-total-label { font-size: 9.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--text2); }
+.tbl-total-val { font-size: 15px; font-weight: 700; color: var(--red); }
 
-/* ── ADD FORM ── */
+/* ══ PRIDĖJIMO FORMA ══ */
 .add-form {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: flex-end;
-  padding: 10px 16px;
+  padding: 14px 24px;
   background: var(--bg);
   border-top: 1px solid var(--border);
   flex-wrap: wrap;
 }
 .ff { flex: 1; min-width: 90px; }
-.ff label { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text3); margin-bottom: 3px; }
+.ff label { display: block; margin-bottom: 4px; }
 .ff input, .ff select {
   width: 100%;
   background: var(--surf);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border2);
   border-radius: var(--rs);
   color: var(--text);
-  padding: 6px 9px;
+  padding: 7px 10px;
   font-size: 13px;
   font-family: var(--sans);
   transition: border-color .12s;
 }
-.ff input:focus, .ff select:focus { outline: none; border-color: var(--blue); }
+.ff input:focus, .ff select:focus { outline: none; border-color: var(--royal); }
 
-/* ── BUTTONS ── */
+/* ══ MYGTUKAI ══ */
 .btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 7px 14px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px;
   border-radius: var(--rs);
-  font-size: 12.5px; font-weight: 700;
-  cursor: pointer; border: none;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase;
+  cursor: pointer; border: 1px solid transparent;
   font-family: var(--sans);
   transition: all .13s; white-space: nowrap;
 }
-.btn-blue { background: var(--blue); color: #fff; }
-.btn-blue:hover { background: var(--blue-h); }
-.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text2); }
-.btn-ghost:hover { border-color: var(--border2); color: var(--text); }
-.btn-sm { padding: 5px 10px; font-size: 11.5px; }
+.btn-blue { background: var(--royal); color: #fff; }
+.btn-blue:hover { background: var(--royal-h); }
+.btn-ghost { background: transparent; border-color: var(--border2); color: var(--text2); }
+.btn-ghost:hover { border-color: var(--royal); color: var(--royal); }
+.btn-sm { padding: 7px 13px; font-size: 9.5px; }
 
 .del-btn {
   width: 28px; height: 28px;
@@ -390,21 +433,25 @@ body {
 }
 .del-btn:hover { background: var(--red-t); color: var(--red); }
 
-/* ── ALL TASKS VIEW ── */
+/* ══ VISŲ IŠLAIDŲ RODINYS ══ */
 .alltasks-head {
-  background: var(--navy); color: #fff;
-  padding: 11px 16px;
-  display: flex; align-items: center; gap: 8px;
+  background: linear-gradient(158deg, #1E45CF, #16339F);
+  color: #fff;
+  padding: 14px 24px;
+  display: flex; align-items: center; gap: 10px;
 }
-.alltasks-title { font-size: 11px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; }
-.alltasks-sum { margin-left: auto; font-family: var(--mono); font-size: 16px; font-weight: 800; color: #FC8181; font-variant-numeric: tabular-nums; }
-.alltasks-count { font-size: 11px; color: rgba(255,255,255,.45); }
+.alltasks-title {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .22em; text-transform: uppercase;
+}
+.alltasks-sum { margin-left: auto; font-size: 17px; font-weight: 700; color: #FF9E9E; }
+.alltasks-count { font-size: 10.5px; color: rgba(255,255,255,.45); letter-spacing: .04em; }
 
-.tbl-comp { font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--blue); }
+.tbl-comp { font-size: 9.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--royal); }
 
-/* ── SHEETS MODAL ── */
+/* ══ MODALAS ══ */
 .overlay {
-  position: fixed; inset: 0; background: rgba(10,25,60,.6);
+  position: fixed; inset: 0; background: rgba(16,38,95,.55);
   z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 .modal {
@@ -416,28 +463,27 @@ body {
   max-height: 90vh; overflow-y: auto;
 }
 .modal-head {
-  padding: 16px 20px;
+  padding: 18px 22px;
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
 }
-.modal-head h3 { font-size: 15px; font-weight: 700; }
-.modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
-.modal-foot { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+.modal-head h3 { font-family: var(--serif); font-size: 18px; font-weight: 700; color: var(--navy); }
+.modal-body { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+.modal-foot { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
 
-.form-field { }
-.form-field label { display: block; font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
+.form-field label { display: block; margin-bottom: 5px; }
 .form-field input, .form-field textarea {
   width: 100%;
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border2);
   border-radius: var(--rs);
   color: var(--text);
   padding: 8px 11px;
   font-size: 13px;
   font-family: var(--sans);
 }
-.form-field input:focus, .form-field textarea:focus { outline: none; border-color: var(--blue); }
-.form-field textarea { height: 100px; resize: vertical; font-family: var(--mono); font-size: 11.5px; }
+.form-field input:focus, .form-field textarea:focus { outline: none; border-color: var(--royal); }
+.form-field textarea { height: 100px; resize: vertical; font-family: ui-monospace, monospace; font-size: 11.5px; }
 
 .info-box {
   background: var(--blue-t);
@@ -448,77 +494,83 @@ body {
   color: var(--text2);
   line-height: 1.6;
 }
-.info-box strong { color: var(--text); }
+.info-box strong { color: var(--navy); }
 .info-box code {
-  font-family: var(--mono);
+  font-family: ui-monospace, monospace;
   font-size: 11px;
-  background: rgba(26,86,219,.1);
+  background: rgba(27,62,194,.08);
   padding: 1px 5px;
-  border-radius: 3px;
-  color: var(--blue);
+  border-radius: 2px;
+  color: var(--royal);
 }
 
 .steps { display: flex; flex-direction: column; gap: 10px; counter-reset: step; }
 .step { display: flex; gap: 10px; align-items: flex-start; }
 .step::before {
   counter-increment: step;
-  content: counter(step);
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  background: var(--blue);
-  color: #fff;
-  font-size: 10px; font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; margin-top: 1px;
+  content: counter(step, upper-roman);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 13px; font-weight: 600;
+  color: var(--royal);
+  min-width: 26px;
+  margin-top: 0;
 }
 .step-text { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
-.step-text strong { color: var(--text); }
+.step-text strong { color: var(--navy); }
 
-/* ── TOAST ── */
+/* ══ TOAST ══ */
 .toast {
   position: fixed; bottom: 20px; right: 20px;
   background: var(--navy);
-  border: 1px solid var(--blue);
+  border: 1px solid var(--royal);
   color: #fff;
-  padding: 9px 16px;
+  padding: 10px 16px;
   border-radius: var(--rs);
-  font-size: 12.5px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
+  letter-spacing: .02em;
   z-index: 999;
   animation: ta .18s ease;
-  max-width: 300px;
+  max-width: 320px;
 }
-.toast.err { border-color: var(--red); color: #FC8181; }
-.toast.ok  { border-color: #4ade80; color: #4ade80; }
+.toast.err { border-color: var(--red); color: #FFB4B4; }
+.toast.ok  { border-color: #4FBF8B; color: #8FE7BC; }
 @keyframes ta { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-/* ── EMPTY ── */
-.empty { padding: 20px 16px; text-align: center; color: var(--text3); font-size: 12.5px; }
+/* ══ TUŠČIA ══ */
+.empty { padding: 26px 24px; text-align: center; color: var(--text3); font-size: 12.5px; }
 
-/* ── VIEW MODE ── */
+/* ══ VIEW MODE ══ */
 body.view-mode .admin-only { display: none !important; }
-body.view-mode input, body.view-mode select { pointer-events: none; opacity: .75; }
+body.view-mode input, body.view-mode select { pointer-events: none; opacity: .8; }
 
-/* ── RESPONSIVE ── */
-@media (max-width: 760px) {
-  .grand-kpis { display: none; }
-  .tbl-rev { grid-template-columns: 75px 1fr 80px 80px 36px; }
+/* ══ RESPONSIVE ══ */
+@media (max-width: 820px) {
+  .topbar { padding: 0 16px; gap: 12px; }
+  .topbar-mid { display: none; }
+  .monthbar, .hero { padding-left: 16px; padding-right: 16px; }
+  .hero-kpis { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .co-stats { display: none; }
+  .tbl-rev { grid-template-columns: 78px 1fr 85px 85px 36px; }
   .tbl-rev .cell-card { display: none; }
   .add-form { flex-direction: column; }
   .ff { min-width: 100%; }
-  .topbar-mid { display: none; }
+  .tbl-head, .tbl-row, .tbl-total, .add-form { padding-left: 16px; padding-right: 16px; }
+  .co-head, .sec-head { padding-left: 16px; padding-right: 16px; }
 }
 </style>
 
 <!-- ══ HTML ══ -->
 <div class="topbar">
   <div class="logo">
-    <div class="logo-mark">R</div>
-    <div><div class="logo-text">Ritmo</div><div class="logo-sub">Finansų valdymas</div></div>
+    <span class="logo-name">RITMO</span>
+    <span class="logo-rule"></span>
+    <span class="logo-sub">Finansų<br>valdymas</span>
   </div>
   <div class="topbar-mid" id="nav"></div>
   <div class="topbar-right">
     <div class="mode-chip" id="mode-chip">Admin</div>
-    <button class="btn btn-ghost btn-sm" style="color:rgba(255,255,255,.6);border-color:rgba(255,255,255,.2);" onclick="copyViewLink()" id="view-btn">👁 View link</button>
+    <button class="btn btn-ghost btn-sm" onclick="copyViewLink()" id="view-btn">Peržiūros nuoroda</button>
   </div>
 </div>
 
@@ -532,7 +584,7 @@ body.view-mode input, body.view-mode select { pointer-events: none; opacity: .75
   </button>
 </div>
 
-<div class="grand-strip" id="grand-strip"></div>
+<div class="hero" id="grand-strip"></div>
 
 <main class="main" id="main"></main>
 
@@ -560,7 +612,7 @@ body.view-mode input, body.view-mode select { pointer-events: none; opacity: .75
       </div>
 
       <div style="border-top:1px solid var(--border);padding-top:14px">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);margin-bottom:8px">Arba įklijuok CSV tekstą tiesiai (Sheets → Failas → Atsisiųsti → CSV)</div>
+        <div class="microlabel" style="margin-bottom:8px">Arba įklijuok CSV tekstą tiesiai (Sheets → Failas → Atsisiųsti → CSV)</div>
         <div class="form-field">
           <label>CSV turinys (paste)</label>
           <textarea id="sheets-csv" placeholder="Čia įklijuok CSV..."></textarea>
@@ -824,34 +876,22 @@ function renderGrand() {
   const totalEarned = COMPANIES.reduce((s,co)=>s+DB.totals(co.id,yr,mo).earned,0);
   const totalProj = COMPANIES.reduce((s,co)=>s+DB.getM(co.id,yr,mo).proj,0);
 
-  const eobClass = eob>5000?'pos':eob>0?'warn':'neg';
+  const eobClass = eob>5000?'g':eob>0?'a':'r';
   const statusWord = eob>5000?'Saugus':eob>0?'Atsargiai':'Kritiškai';
 
   document.getElementById('grand-strip').innerHTML = `
-    <div class="grand-left">
-      <div class="grand-label">Visos įmonės — projekcija mėnesio gale</div>
-      <div class="grand-value ${eobClass}">${fmt(eob,0)}</div>
-      <div class="grand-status ${eobClass==='pos'?'':''}">
-        <span style="color:${eob>5000?'#4ade80':eob>0?'#FFC947':'#FC8181'};font-weight:700;font-size:12px">
-          ${statusWord}
-        </span>
-        <span style="color:rgba(255,255,255,.35);font-size:11px;margin-left:8px">
-          Esami pinigai: ${fmtK(funds)}
-        </span>
+    <div class="hero-inner">
+      <div class="hero-label">Visos įmonės · Projekcija mėnesio gale</div>
+      <div class="hero-value">${fmt(eob,0)}</div>
+      <div class="hero-status">
+        <span class="hero-chip ${eobClass}">${statusWord}</span>
+        <span class="hero-note">${mname(mo,yr)}</span>
       </div>
-    </div>
-    <div class="grand-kpis">
-      <div class="gkpi">
-        <div class="gkpi-label">Esami (viso)</div>
-        <div class="gkpi-value">${fmtK(funds)}</div>
-      </div>
-      <div class="gkpi">
-        <div class="gkpi-label">Uždirbta</div>
-        <div class="gkpi-value g">${fmtK(totalEarned)}</div>
-      </div>
-      <div class="gkpi">
-        <div class="gkpi-label">Neapmokėta</div>
-        <div class="gkpi-value r">${fmtK(unpaid)}</div>
+      <div class="hero-kpis">
+        <div class="hkpi"><label>Esami pinigai</label><b class="g">${fmtK(funds)}</b></div>
+        <div class="hkpi"><label>Uždirbta šį mėn.</label><b class="g">${fmtK(totalEarned)}</b></div>
+        <div class="hkpi"><label>Mėnesio projekcija</label><b class="w">${fmtK(totalProj)}</b></div>
+        <div class="hkpi"><label>Neapmokėta</label><b class="r">${fmtK(unpaid)}</b></div>
       </div>
     </div>
   `;
@@ -1048,11 +1088,22 @@ function renderCompany(co, full=false) {
 
   const eobClass = T.eob>5000?'pos':T.eob>0?'warn':'neg';
 
+  const roman = ['I','II','III','IV','V'][COMPANIES.findIndex(c=>c.id===co.id)] || '';
   return `<div class="card" id="co-${co.id}">
-    <div class="sec-head">
-      <span class="sec-title">${esc(co.label)}</span>
-      <span class="sec-proj" style="color:var(--text2);font-size:11px">${esc(co.name)}</span>
-      <span class="sec-funds">Esami: ${fmtK(T.funds)} · EOB: <span style="color:${T.eob>0?'var(--green)':'var(--red)'}">${fmtK(T.eob)}</span></span>
+    <div class="co-head">
+      <span class="co-num">${roman}.</span>
+      <div>
+        <div class="co-name">${esc(co.label)}</div>
+        <div class="co-sub">${esc(co.name)}</div>
+      </div>
+      <div class="co-stats">
+        <div class="co-stat"><label>Esami pinigai</label><b class="g">${fmtK(T.funds)}</b></div>
+        <div class="co-stat"><label>Neapmokėta</label><b class="r">${fmtK(T.unpaid)}</b></div>
+        <div class="co-stat"><label>Mėnesio gale</label><b class="${T.eob>0?'g':'r'}">${fmtK(T.eob)}</b></div>
+      </div>
+    </div>
+    <div class="sec-head" style="border-top:none">
+      <span class="sec-title">Esami pinigai — sąskaitos ir kasos</span>
     </div>
     <div class="bal-grid">${balCells}</div>
     ${projSection}
